@@ -4,12 +4,8 @@ A browser-based invoice tool for small businesses: create and edit invoices with
 
 All data in this project is fictional.
 
-> **Branch `Dc-Laravel`: Laravel backend serving a static frontend.**
-> Compared with `Dc-Node` (Node.js + Express backend, Next.js server), this branch:
-> - rewrites the API in **Laravel 13 (PHP 8.3)** with the same endpoints, JSON and rules, still on **SQLite**;
-> - builds the **Next.js** frontend as plain static files that Laravel serves from `public/app`, so the whole app runs as **one Laravel application on one domain**.
->
-> `frontend/` and `backend/` remain separate projects, each with its own dependencies, tests and README. The features and the invoice design are the same as on `main`.
+> **Branch `Dc-Laravel`.** The app runs as one **Laravel 13 (PHP 8.3)** application with **SQLite**. Laravel provides the API and serves the **Next.js** frontend, built as static files, from `backend/public/app`, so everything runs on one domain.
+> `frontend/` and `backend/` are separate projects, each with its own dependencies, tests and README.
 
 ## Tech stack
 
@@ -245,7 +241,7 @@ Example from the brief: 2 × $50 − $10 discount + 10% tax = **$99.00**. This i
 - **Single form instead of tabs:** section links at the top jump through one scrolling form, so a validation error is never hidden on another tab.
 - **Same validation in both apps:** the same rules run in the browser (for instant feedback) and on the server (as the final check).
 - **Static frontend inside Laravel:** one application, one domain and one deployment, with no Node.js server needed in production. The frontend still lives in its own folder and builds independently.
-- **Same API contract as before:** the Laravel API returns the same JSON field names and error format as the earlier Node.js API, so the frontend's forms and types did not change.
+- **One API contract:** the API uses camelCase JSON fields and a single error format (`{ error: { message, fieldErrors } }`), which the frontend's types mirror exactly.
 - **Focused scope:** only features supported by real data were built. For example, Sent/Draft status comes from whether the invoice was emailed; there is no payment tracking.
 
 ## AI tools used
@@ -257,7 +253,7 @@ Built with **Claude Code** (Anthropic) as a pair programmer.
 
 ## Time spent
 
-About 3 hours in total for the exercise, within the 3-hour limit. The standalone backend, the frontend/backend split and the Laravel version on this branch were added afterwards as a follow-up.
+About 3 hours in total for the exercise, within the 3-hour limit. The Laravel backend and the static frontend build were added afterwards as a follow-up.
 
 ## Unfinished work and limitations
 
