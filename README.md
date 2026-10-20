@@ -4,7 +4,7 @@ A browser-based invoice tool for small businesses: create and edit invoices with
 
 All data in this project is fictional.
 
-> **Branch `Dc-Split`: independent frontend and backend.**
+> **Branch `Dc-Node`: independent frontend and backend.**
 > The app is split into two self-contained projects, **`frontend/`** (Next.js) and **`backend/`** (Node.js + Express + SQLite).
 > Each has its own `package.json`, lockfile, config, tests, `.env` and README, so each can be built, tested and deployed on its own, on any platform.
 > They communicate only over HTTP.
