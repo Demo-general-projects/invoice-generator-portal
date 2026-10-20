@@ -64,28 +64,73 @@ invoice-generator/
 2. The backend validates again, saves through Prisma and returns the invoice with server-calculated totals.
 3. Send calls `POST /api/invoices/:id/email`. The backend loads the saved invoice, renders the email and sends it over SMTP, so the email always matches what was stored.
 
-## Setup and run
+## Run on localhost
 
-Requirements: Node.js 20.9 or later, and npm. Run each app in its own terminal.
+The app has two parts that run side by side, each in its own terminal:
+
+| App | Folder | Address |
+|---|---|---|
+| Backend (Express API + SQLite) | `backend/` | <http://localhost:4000> |
+| Frontend (Next.js) | `frontend/` | <http://localhost:3000> |
+
+Start the backend first, because the frontend loads its data from it.
+
+### Requirements
+
+- **Node.js 20.9 or later** (both folders include an `.nvmrc` for Node 22, so `nvm use` picks it up) and **npm**. Check with `node -v`.
+- **Git**, to clone the repository.
+- **SMTP login (optional):** only needed to send emails. Everything else works without it.
+
+### 1. Get the code
 
 ```bash
-# Terminal 1: backend (http://localhost:4000)
-cd backend
-cp .env.example .env     # fill in the SMTP values (see Email setup)
-npm install
-npm run setup            # creates the SQLite database and adds one sample invoice
-npm run dev
+git clone https://github.com/Demo-general-projects/invoice-generator.git
+cd invoice-generator
+git checkout Dc-Node
 ```
 
+### 2. Start the backend (terminal 1)
+
 ```bash
-# Terminal 2: frontend (http://localhost:3000)
+cd backend
+cp .env.example .env     # local settings; add SMTP values to enable email (see Email setup)
+npm install              # installs packages and generates the Prisma client
+npm run setup            # creates the SQLite database (backend/dev.db) and a sample invoice, INV-0001
+npm run dev              # starts the API on http://localhost:4000
+```
+
+The terminal shows `Ledgerline API listening on http://localhost:4000`. To check it, open <http://localhost:4000/api/health>, which returns `{"ok":true}`.
+
+### 3. Start the frontend (terminal 2)
+
+```bash
 cd frontend
 cp .env.example .env     # API_URL=http://localhost:4000
 npm install
-npm run dev
+npm run dev              # starts the app on http://localhost:3000
 ```
 
-Open <http://localhost:3000>.
+### 4. Open the app
+
+Go to <http://localhost:3000>. The invoices dashboard opens and shows the sample invoice INV-0001 ($99.00). Click **New invoice** to create one.
+
+### Next time
+
+The install and setup steps are only needed once. After that, start the two apps with:
+
+```bash
+cd backend && npm run dev      # terminal 1
+cd frontend && npm run dev     # terminal 2
+```
+
+Press `Ctrl + C` in each terminal to stop them. Invoices stay in `backend/dev.db` between runs.
+
+### Troubleshooting
+
+- **The app says it can't reach the API:** the backend isn't running, or `API_URL` in `frontend/.env` doesn't match the backend's address. Start the backend, then reload the page.
+- **"Port already in use":** another process is using port 3000 or 4000. Stop it, or change the port. For the backend, set `API_PORT` in `backend/.env`, then update `API_URL` in `frontend/.env` to match and restart the frontend. For the frontend, run `npm run dev -- -p 3001` and set `APP_URL` in `backend/.env` to the new address.
+- **Sending email returns "not configured":** fill in the `SMTP_*` and `EMAIL_FROM` values in `backend/.env`, then restart the backend.
+- **Start again with an empty database:** stop the backend, delete `backend/dev.db`, then run `npm run setup` again.
 
 ## Tests and CI
 
