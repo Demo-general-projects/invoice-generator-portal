@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { formatUSD, parseDecimal } from "./money";
+import { centsToInput, formatDecimal, formatUSD, parseDecimal } from "./money";
 import { calculateTotals } from "./totals";
 
 // Upper bounds keep every intermediate product inside Number.MAX_SAFE_INTEGER.
@@ -161,6 +161,33 @@ export function formToInput(form: InvoiceFormValues): InvoiceInput {
       description: line.description.trim(),
       quantityHundredths: parseField(line.quantity, "quantity") ?? 0,
       unitPriceCents: parseField(line.unitPrice, "unitPrice") ?? 0,
+    })),
+  };
+}
+
+/* ------------------------------------------------------------------------ */
+/* Email request                                                            */
+/* ------------------------------------------------------------------------ */
+
+export const emailRequestSchema = z.object({
+  to: z.email("Enter a valid recipient email"),
+  subject: z.string().trim().min(1, "Add a subject").max(200),
+  message: z.string().max(1000, "Keep the message under 1000 characters"),
+});
+
+export type EmailRequest = z.infer<typeof emailRequestSchema>;
+
+/** Converts stored integers back into editable form strings. */
+export function inputToForm(input: InvoiceInput): InvoiceFormValues {
+  const { discountCents, taxRateBps, lineItems, ...rest } = input;
+  return {
+    ...rest,
+    discount: discountCents ? formatDecimal(discountCents, 2) : "",
+    taxRate: taxRateBps ? formatDecimal(taxRateBps, 2) : "",
+    lineItems: lineItems.map((line) => ({
+      description: line.description,
+      quantity: formatDecimal(line.quantityHundredths, 2),
+      unitPrice: centsToInput(line.unitPriceCents),
     })),
   };
 }
