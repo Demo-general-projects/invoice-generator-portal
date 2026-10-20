@@ -2,11 +2,11 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, ChevronRight, Loader2, Mail, Printer, Save } from "lucide-react";
+import { Check, Loader2, Mail, Printer, Save } from "lucide-react";
 import { FormProvider, useForm, useWatch, type FieldErrors } from "react-hook-form";
 import { toast } from "sonner";
+import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
 import { formToInput, invoiceFormSchema, type EmailRequest, type InvoiceFormValues } from "@/lib/invoice-schema";
 import { formatUSD } from "@/lib/money";
@@ -116,37 +116,23 @@ export function InvoiceEditor({ invoiceId, initialValues }: Props) {
   return (
     <FormProvider {...form}>
       <div className="min-h-dvh pb-24 lg:pb-0">
-        {/* App bar */}
-        <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur print:hidden">
-          <div className="mx-auto flex h-16 max-w-[1500px] items-center gap-4 px-4 sm:px-6">
-            <Link href="/" className="flex items-center gap-2.5 rounded-md font-semibold tracking-tight">
-              <span aria-hidden className="flex size-8 items-center justify-center rounded-lg bg-primary font-serif text-lg text-white">
-                L
-              </span>
-              <span className="hidden sm:inline">Ledgerline</span>
-            </Link>
-            <nav aria-label="Breadcrumb" className="hidden items-center gap-1.5 text-sm text-muted-foreground md:flex">
-              <ChevronRight className="size-4" aria-hidden />
-              <Link href="/invoices" className="rounded hover:text-foreground">Invoices</Link>
-              <ChevronRight className="size-4" aria-hidden />
-              <span aria-current="page" className="font-medium text-foreground">
-                {savedId ? values.number || "Invoice" : "New invoice"}
-              </span>
-            </nav>
-            <div className="ml-auto flex items-center gap-2">
-              <span role="status" className="mr-1 hidden items-center gap-1.5 text-xs text-muted-foreground xl:flex">
-                {status === "All changes saved" && <Check className="size-3.5 text-primary" aria-hidden />}
-                {status}
-              </span>
-              <ToolbarButton icon={<Printer aria-hidden />} label="Print / PDF" onClick={() => window.print()} />
-              <ToolbarButton icon={<Mail aria-hidden />} label="Send" onClick={() => setEmailOpen(true)} />
-              <Button onClick={onSave} disabled={saving} className="hidden h-10 px-4 shadow-sm lg:inline-flex">
-                {saving ? <Loader2 className="animate-spin" aria-hidden /> : <Save aria-hidden />}
-                Save invoice
-              </Button>
-            </div>
-          </div>
-        </header>
+        <AppHeader
+          crumbs={[
+            { label: "Invoices", href: "/invoices" },
+            { label: savedId ? values.number || "Invoice" : "New invoice" },
+          ]}
+        >
+          <span role="status" className="mr-1 hidden items-center gap-1.5 text-xs text-muted-foreground xl:flex">
+            {status === "All changes saved" && <Check className="size-3.5 text-primary" aria-hidden />}
+            {status}
+          </span>
+          <ToolbarButton icon={<Printer aria-hidden />} label="Print / PDF" onClick={() => window.print()} />
+          <ToolbarButton icon={<Mail aria-hidden />} label="Send" onClick={() => setEmailOpen(true)} />
+          <Button onClick={onSave} disabled={saving} className="hidden h-10 px-4 shadow-sm lg:inline-flex">
+            {saving ? <Loader2 className="animate-spin" aria-hidden /> : <Save aria-hidden />}
+            Save invoice
+          </Button>
+        </AppHeader>
 
         <div className="mx-auto max-w-[1500px] px-4 sm:px-6 print:max-w-none print:p-0">
           <div className="flex items-end justify-between gap-4 pt-7 pb-5 print:hidden">

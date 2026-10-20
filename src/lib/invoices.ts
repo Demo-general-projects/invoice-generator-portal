@@ -13,7 +13,7 @@ const withChildren = {
 
 type InvoiceRecord = Prisma.InvoiceGetPayload<{ include: typeof withChildren }>;
 
-export type StoredInvoice = InvoiceInput & { id: string; lastSentAt: Date | null; updatedAt: Date };
+export type StoredInvoice = InvoiceInput & { id: string; lastSentAt: Date | null; createdAt: Date; updatedAt: Date };
 
 export class DuplicateInvoiceNumberError extends Error {
   constructor(number: string) {
@@ -22,7 +22,7 @@ export class DuplicateInvoiceNumberError extends Error {
 }
 
 function toStored(record: InvoiceRecord): StoredInvoice {
-  const { lineItems, customFields, createdAt: _createdAt, ...invoice } = record;
+  const { lineItems, customFields, ...invoice } = record;
   return {
     ...invoice,
     lineItems: lineItems.map(({ description, quantityHundredths, unitPriceCents }) => ({
