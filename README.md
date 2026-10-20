@@ -4,10 +4,12 @@ A browser-based invoice tool for small businesses: create and edit invoices with
 
 All data in this project is fictional.
 
-> **Branch `Dc-Node`: independent frontend and backend.**
-> The app is split into two self-contained projects, **`frontend/`** (Next.js) and **`backend/`** (Node.js + Express + SQLite).
-> Each has its own `package.json`, lockfile, config, tests, `.env` and README, so each can be built, tested and deployed on its own, on any platform.
-> They communicate only over HTTP.
+> **Branch `Dc-Node`: standalone Node.js backend, independent frontend and backend.**
+> Compared with `main` (where the API runs inside Next.js), this branch:
+> - moves the API to a standalone **Node.js + Express** server;
+> - splits the repository into two self-contained projects, **`frontend/`** (Next.js) and **`backend/`** (Express + SQLite).
+>
+> Each project has its own `package.json`, lockfile, config, tests, `.env` and README, so each can be built, tested and deployed on its own, on any platform. They communicate only over HTTP. The features and the invoice design are the same as on `main`.
 
 ## Tech stack
 
@@ -85,7 +87,18 @@ npm run dev
 
 Open <http://localhost:3000>.
 
-Both folders provide `npm test`, `npm run lint`, `npm run typecheck`, `npm run build` and `npm start`.
+## Tests and CI
+
+Run the checks inside each folder:
+
+```bash
+npm test             # backend: domain + API tests; frontend: calculation + form-validation tests
+npm run lint
+npm run typecheck
+npm run build
+```
+
+GitHub Actions runs these checks with one workflow per app (`.github/workflows/backend.yml`, `frontend.yml`). Each workflow runs only when files in its own folder change. CI only checks the code; it does not deploy.
 
 ## Storage
 
@@ -117,6 +130,17 @@ Each app has its own `.env` (gitignored) and `.env.example`.
 | backend | `APP_URL` | Frontend's public URL, used for the "View invoice online" link in emails |
 | backend | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` | Email sending; `EMAIL_FROM` must be `Name <address>` |
 | frontend | `API_URL` | Base URL of the backend |
+
+## Deployment
+
+The two apps deploy separately; set each host's root directory to the app's folder.
+
+| App | Suitable hosts | Build | Start | Key settings |
+|---|---|---|---|---|
+| `backend/` | Render (disk), Railway (volume), Fly.io (volume), any VM | `npm ci && npm run build` | `npm start` (applies migrations first) | `DATABASE_URL` on a persistent disk, `APP_URL`, SMTP values |
+| `frontend/` | Vercel, AWS Amplify, Netlify, Render | `npm ci && npm run build` | `npm start` (or the host's Next.js runtime) | `API_URL` = the backend's public URL |
+
+Because SQLite is a single file, the backend needs a persistent disk and must run as a single instance. Full steps are in [`backend/README.md`](backend/README.md) and [`frontend/README.md`](frontend/README.md).
 
 ## Email setup
 
@@ -158,7 +182,8 @@ Example from the brief: 2 × $50 − $10 discount + 10% tax = **$99.00**. This i
 - **Preview matches print:** the preview is the same Letter-size document that gets printed, so the PDF looks exactly like the screen.
 - **Reliable printing:** the invoice includes its own page margins, so it prints correctly under Chrome's Default, None or Minimum margin settings.
 - **Single form instead of tabs:** section links at the top jump through one scrolling form, so a validation error is never hidden on another tab.
-- **Shared validation:** the same rules run in the browser and on the server.
+- **Same validation in both apps:** the same rules run in the browser (for instant feedback) and on the server (as the final check). Each app keeps its own copy, so neither depends on the other.
+- **Separate projects instead of one Next.js app:** the frontend and backend can be hosted, scaled and released independently, with the API reachable by any client.
 - **Focused scope:** only features supported by real data were built. For example, Sent/Draft status comes from whether the invoice was emailed; there is no payment tracking.
 
 ## AI tools used
