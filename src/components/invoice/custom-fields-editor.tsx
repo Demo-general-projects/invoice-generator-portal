@@ -51,7 +51,7 @@ export function CustomFieldsEditor() {
             <li
               key={field.id}
               className={cn(
-                "grid grid-cols-[minmax(0,1fr)_auto_auto] items-start gap-x-2 gap-y-2 rounded-xl border border-border bg-white p-3 transition-opacity sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_auto_auto] sm:border-0 sm:p-0",
+                "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-2 rounded-xl border border-border bg-white p-3 transition-opacity sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_auto_auto] sm:border-0 sm:p-0",
                 !visible && "opacity-60",
               )}
             >
@@ -59,7 +59,7 @@ export function CustomFieldsEditor() {
                 label={`Custom field ${index + 1} label`}
                 hideLabel
                 placeholder="Label"
-                className="col-span-3 sm:col-span-1"
+                className="col-span-2 sm:col-span-1"
                 error={errors?.[index]?.label?.message}
                 {...register(`customFields.${index}.label`)}
               />
@@ -67,6 +67,7 @@ export function CustomFieldsEditor() {
                 label={`${name} value`}
                 hideLabel
                 placeholder="Value"
+                className="col-span-2 sm:col-span-1"
                 error={errors?.[index]?.value?.message}
                 {...register(`customFields.${index}.value`)}
               />

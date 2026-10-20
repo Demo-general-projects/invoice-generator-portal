@@ -48,3 +48,4 @@ next-env.d.ts
 /customizable-invoice-generator-interview-exercise.pdf
 /design-references
 !.env.example
+/review-screenshots

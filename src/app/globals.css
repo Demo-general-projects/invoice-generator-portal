@@ -108,4 +108,9 @@
   .invoice-row {
     break-inside: avoid;
   }
+  /* Sonner's own styles are unlayered, so they beat Tailwind's layered
+     `print:hidden`; this unlayered rule keeps toasts out of printed PDFs. */
+  [data-sonner-toaster] {
+    display: none !important;
+  }
 }

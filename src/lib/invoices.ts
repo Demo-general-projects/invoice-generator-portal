@@ -67,6 +67,7 @@ export async function listInvoices() {
       id: invoice.id,
       number: invoice.number,
       customerName: invoice.customerName,
+      customerEmail: invoice.customerEmail,
       issueDate: invoice.issueDate,
       dueDate: invoice.dueDate,
       totalCents: calculateTotals(invoice).totalCents,
@@ -133,3 +134,5 @@ export async function latestBusinessDetails() {
     select: { businessName: true, businessEmail: true, businessAddress: true },
   });
 }
+
+export type InvoiceSummary = Awaited<ReturnType<typeof listInvoices>>[number];

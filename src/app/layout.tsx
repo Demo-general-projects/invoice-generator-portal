@@ -25,7 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-dvh">
         {children}
-        <Toaster position="bottom-right" toastOptions={{ className: "print:hidden" }} />
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );

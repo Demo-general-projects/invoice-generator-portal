@@ -14,7 +14,7 @@ Built for the full-stack interview exercise in about 3 hours. The data is fictio
 - **Custom fields:** add, edit, show/hide and remove label/value pairs. Visible fields appear in the invoice's details block. Hidden fields are saved but never shown or printed, and custom fields never change the totals.
 - **Live preview:** the invoice is laid out as a Letter-size document and scaled to fit any screen.
 - **Print / Save as PDF:** uses the browser's print dialog. Only the invoice document prints, with no app controls and no hidden fields.
-- **Save and retrieve:** invoices are stored in SQLite. After saving, the URL changes to `/invoices/:id`, so reloading the page restores the invoice. `/invoices` lists all invoices with their totals and a Sent/Draft status.
+- **Save and retrieve:** invoices are stored in SQLite. After saving, the URL changes to `/invoices/:id`, so reloading the page restores the invoice. `/invoices` is a dashboard listing every invoice with its customer, total, Sent/Draft status and due date, with search by invoice number or customer name.
 - **Email:** sends the saved invoice as a styled HTML email with a plain-text alternative, over any SMTP provider.
 - **Validation:** the same Zod rules run in the browser and on the server. Negative quantities, prices, discounts and tax rates are rejected, a discount larger than the subtotal is rejected, and the due date can't be before the issue date. Errors appear inline next to the field, and focus moves to the first invalid field.
 - **Responsive and accessible:**
