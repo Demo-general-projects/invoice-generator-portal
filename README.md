@@ -4,6 +4,17 @@ A browser-based invoice tool for small businesses: create and edit invoices with
 
 All data in this project is fictional.
 
+> **Branch `Dc-Node`: standalone Node.js backend.**
+> This branch moves the backend into a separate **Node.js + Express** API server (`server/`). The Next.js app becomes a pure frontend.
+> Features, UI, database and calculations are the same as `main`, where the API is served by Next.js route handlers.
+>
+> | | `main` | `Dc-Node` (this branch) |
+> |---|---|---|
+> | Backend | Next.js route handlers | Express 5 server on Node.js (port 4000) |
+> | Processes | 1 (`next dev`) | 2, started together by `npm run dev` |
+> | Data access and email code | `src/lib/` | `server/` |
+> | API tests | none | Supertest against a temporary SQLite database |
+
 ## Tech stack
 
 | Area | Technology |
@@ -42,6 +53,29 @@ Browser ──► Next.js frontend (port 3000) ──/api/* proxy──► Expre
 - **`server/`**: the Node.js backend. Express routes, data access, and email sending. It is the only part that touches the database or SMTP credentials.
 - **`src/`**: the Next.js frontend. Pages load data from the API, and the browser calls `/api/*`, which Next.js forwards to Express, so no CORS setup is needed.
 - **`src/lib/`**: code shared by both sides, including money handling, totals, validation rules and API types, so the browser and server always apply the same rules.
+
+**What happens on save and send:**
+
+1. The editor validates the form in the browser and sends integer amounts to `POST /api/invoices` (or `PUT` to update).
+2. Express validates the request again with the same Zod schema, saves it through Prisma and returns the invoice with server-calculated totals.
+3. Send calls `POST /api/invoices/:id/email`. Express loads the saved invoice from the database, renders the email and sends it over SMTP, so the email always matches what was stored.
+
+### Project structure
+
+```
+server/
+  index.ts                 starts the API (API_PORT, default 4000)
+  app.ts                   Express app: JSON parsing, routes, error handling
+  routes/invoices.ts       /api/invoices endpoints
+  invoices.ts, db.ts       data access with Prisma + SQLite
+  email/                   SMTP mailer and invoice email (HTML + text)
+  app.test.ts              API tests
+src/
+  app/                     Next.js pages: dashboard, new and edit invoice
+  components/              dashboard, editor, invoice document, email dialog
+  lib/                     shared: money, totals, validation, API types, API client
+prisma/                    schema, migrations, sample data
+```
 
 ## Setup and run
 
@@ -82,6 +116,19 @@ Open <http://localhost:3000>.
 | `PUT` | `/api/invoices/:id` | Update an invoice |
 | `POST` | `/api/invoices/:id/email` | Email a saved invoice |
 
+## Environment variables
+
+Copy `.env.example` to `.env`. The file is gitignored, so secrets are never committed.
+
+| Variable | Used by | Purpose |
+|---|---|---|
+| `DATABASE_URL` | API | SQLite file, default `file:./dev.db` |
+| `API_PORT` | API | Port of the Express server, default `4000` |
+| `API_URL` | Frontend | Where Next.js sends `/api/*` requests, default `http://localhost:4000` |
+| `APP_URL` | API | Base URL for the "View invoice online" link in emails |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | API | SMTP server login |
+| `EMAIL_FROM` | API | Sender, in the form `Name <address>` |
+
 ## Email setup
 
 Email is sent by the Express API over SMTP, so any provider works. Credentials stay on the server in `.env` and are never sent to the browser.
@@ -98,9 +145,6 @@ SMTP_PORT="465"
 SMTP_USER="resend"
 SMTP_PASS="your-resend-api-key"
 EMAIL_FROM="Acme Studio <onboarding@resend.dev>"
-APP_URL="http://localhost:3000"
-API_PORT="4000"                 # Express API port
-API_URL="http://localhost:4000" # where the frontend sends /api/* requests
 ```
 
 4. Restart `npm run dev`, open an invoice and click **Send**.
@@ -137,7 +181,7 @@ Built with **Claude Code** (Anthropic) as a pair programmer.
 
 ## Time spent
 
-About 3 hours in total, within the 3-hour limit.
+About 3 hours in total for the exercise, within the 3-hour limit. The standalone Express backend on this branch was added afterwards as a follow-up.
 
 ## Unfinished work and limitations
 
