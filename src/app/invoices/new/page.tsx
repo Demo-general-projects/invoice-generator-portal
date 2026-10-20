@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { connection } from "next/server";
 import { InvoiceEditor } from "@/components/invoice/invoice-editor";
 import { todayISO } from "@/lib/dates";
 import { latestBusinessDetails, suggestInvoiceNumber } from "@/lib/invoices";
+
+export const metadata: Metadata = { title: "New invoice · Ledgerline" };
 
 export default async function NewInvoicePage() {
   await connection(); // invoice number and dates depend on the current data and day

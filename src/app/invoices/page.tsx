@@ -1,9 +1,12 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Plus } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { InvoiceTable } from "@/components/dashboard/invoice-table";
 import { listInvoices } from "@/lib/invoices";
+
+export const metadata: Metadata = { title: "Invoices · Ledgerline" };
 
 export default async function InvoicesPage() {
   await connection();

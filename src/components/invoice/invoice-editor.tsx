@@ -131,7 +131,7 @@ export function InvoiceEditor({ invoiceId, initialValues, initialAction }: Props
 
   return (
     <FormProvider {...form}>
-      <div className="min-h-dvh pb-24 lg:pb-0">
+      <div className="min-h-dvh pb-24 lg:pb-0 print:min-h-0 print:pb-0">
         <AppHeader
           crumbs={[
             { label: "Invoices", href: "/invoices" },
@@ -150,7 +150,7 @@ export function InvoiceEditor({ invoiceId, initialValues, initialAction }: Props
           </Button>
         </AppHeader>
 
-        <div className="mx-auto max-w-[1500px] px-4 sm:px-6 print:max-w-none print:p-0">
+        <div className="mx-auto max-w-[1500px] px-4 sm:px-6 print:max-w-none print:p-0!">
           <div className="flex items-end justify-between gap-4 pt-7 pb-5 print:hidden">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight sm:text-[28px]">
@@ -289,7 +289,7 @@ export function InvoiceEditor({ invoiceId, initialValues, initialAction }: Props
                 mobileView === "edit" && "hidden lg:block",
               )}
             >
-              <div className="rounded-2xl bg-canvas p-3 sm:p-6 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto print:max-h-none print:overflow-visible print:bg-transparent print:p-0">
+              <div className="rounded-2xl bg-canvas p-3 sm:p-6 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto print:max-h-none print:overflow-visible print:bg-transparent print:p-0!">
                 <PaperScaler>
                   <InvoiceDocument values={values} />
                 </PaperScaler>

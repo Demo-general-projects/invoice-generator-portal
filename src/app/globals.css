@@ -89,10 +89,13 @@
   }
 }
 
-/* Print only the invoice document. App chrome uses `print:hidden`. */
+/* Print only the invoice document. App chrome uses `print:hidden`.
+   No page margin: the document's own padding is the margin (see below), so the
+   result is the same whatever "Margins" option is picked, and Chrome adds no
+   URL/date header or footer. */
 @page {
   size: letter;
-  margin: 14mm;
+  margin: 0;
 }
 
 @media print {
@@ -106,6 +109,12 @@
   }
   .invoice-row {
     break-inside: avoid;
+  }
+  /* Repeat the document's padding on every printed page. */
+  .invoice-document {
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    padding: 0.6in 0.7in 0.5in;
   }
   /* Sonner's own styles are unlayered, so they beat Tailwind's layered
      `print:hidden`; this unlayered rule keeps toasts out of printed PDFs. */
