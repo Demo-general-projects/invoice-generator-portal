@@ -71,6 +71,7 @@ export async function listInvoices() {
       issueDate: invoice.issueDate,
       dueDate: invoice.dueDate,
       totalCents: calculateTotals(invoice).totalCents,
+      itemCount: invoice.lineItems.length,
       lastSentAt: invoice.lastSentAt,
       updatedAt: invoice.updatedAt,
     };

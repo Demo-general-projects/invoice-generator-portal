@@ -43,7 +43,7 @@ export function renderInvoiceEmail(invoice: StoredInvoice, options: { message: s
     )
     .join("");
 
-  const html = `<!doctype html><html><body style="margin:0;background:#f6f6f3;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#16201f">
+  const html = `<!doctype html><html><body style="margin:0;background:#f4f6f8;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#16201f">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px"><tr><td align="center">
   <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;background:#fff;border:1px solid ${BORDER};border-radius:12px">
     <tr><td style="padding:32px 32px 8px">

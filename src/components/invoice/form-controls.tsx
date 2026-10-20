@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 export const controlClass = cn(
   "w-full rounded-lg border border-input bg-white px-3 text-base text-foreground shadow-[0_1px_1px_rgba(22,32,31,0.04)] transition-[border-color,box-shadow] sm:text-sm",
-  "placeholder:text-muted-foreground/70 hover:border-[#c4c6be]",
+  "placeholder:text-muted-foreground/70 hover:border-[#c3c9d2]",
   "focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/12 focus-visible:outline-none",
   "aria-invalid:border-destructive aria-invalid:ring-4 aria-invalid:ring-destructive/10",
 );
