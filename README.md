@@ -9,11 +9,11 @@ All data in this project is fictional.
 | Area | Technology |
 |---|---|
 | Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui (Base UI), React Hook Form + Zod |
-| Backend | Next.js route handlers (REST API), Zod validation on the server |
+| Backend | Node.js + Express 5 REST API (TypeScript), Zod validation on the server |
 | Database | SQLite via Prisma 7 |
 | Email | Nodemailer over SMTP (Resend used for the demo) |
 | PDF | Browser Print / Save as PDF with print-specific CSS |
-| Tests | Vitest (unit tests), ESLint |
+| Tests | Vitest (unit tests), Supertest (API tests), ESLint |
 
 ## Features
 
@@ -32,6 +32,17 @@ All data in this project is fictional.
   - The server re-validates every request.
 - **Responsive and accessible:** works on desktop and mobile. Every field has a label, focus is visible, and controls work with the keyboard.
 
+## Architecture
+
+```
+Browser ──► Next.js frontend (port 3000) ──/api/* proxy──► Express API (port 4000) ──► Prisma ──► SQLite (dev.db)
+                                                                    └──► Nodemailer ──► SMTP (Resend)
+```
+
+- **`server/`**: the Node.js backend. Express routes, data access, and email sending. It is the only part that touches the database or SMTP credentials.
+- **`src/`**: the Next.js frontend. Pages load data from the API, and the browser calls `/api/*`, which Next.js forwards to Express, so no CORS setup is needed.
+- **`src/lib/`**: code shared by both sides, including money handling, totals, validation rules and API types, so the browser and server always apply the same rules.
+
 ## Setup and run
 
 Requirements: Node.js 20.9 or later, and npm.
@@ -40,14 +51,17 @@ Requirements: Node.js 20.9 or later, and npm.
 cp .env.example .env     # fill in the SMTP values (see Email setup)
 npm install
 npm run setup            # creates the SQLite database and adds one sample invoice
-npm run dev              # open http://localhost:3000
+npm run dev              # starts the API (port 4000) and the web app (port 3000)
 ```
+
+Open <http://localhost:3000>.
 
 | Command | Purpose |
 |---|---|
-| `npm test` | Run unit tests |
+| `npm run dev` | Run API and frontend together (`dev:api` / `dev:web` run them separately) |
+| `npm test` | Run unit and API tests |
 | `npm run lint` | Lint the code |
-| `npm run build && npm start` | Production build |
+| `npm run build && npm start` | Production build of the frontend, then start API and frontend |
 
 ## Storage
 
@@ -56,11 +70,13 @@ npm run dev              # open http://localhost:3000
 - Money is stored as integer cents, quantity in hundredths and tax in basis points, so no floating-point rounding errors can occur.
 - Totals are always calculated from the line items, never stored separately.
 
-### API
+### API (Express, `server/routes/invoices.ts`)
 
 | Method | Path | Purpose |
 |---|---|---|
+| `GET` | `/api/health` | Health check |
 | `GET` | `/api/invoices` | List invoices |
+| `GET` | `/api/invoices/defaults` | Suggested number, dates and sender details for a new invoice |
 | `POST` | `/api/invoices` | Create an invoice |
 | `GET` | `/api/invoices/:id` | Get one invoice |
 | `PUT` | `/api/invoices/:id` | Update an invoice |
@@ -68,7 +84,7 @@ npm run dev              # open http://localhost:3000
 
 ## Email setup
 
-Email is sent over SMTP, so any provider works. Credentials stay on the server in `.env` and are never sent to the browser.
+Email is sent by the Express API over SMTP, so any provider works. Credentials stay on the server in `.env` and are never sent to the browser.
 
 **Resend (used for the demo):**
 
@@ -83,6 +99,8 @@ SMTP_USER="resend"
 SMTP_PASS="your-resend-api-key"
 EMAIL_FROM="Acme Studio <onboarding@resend.dev>"
 APP_URL="http://localhost:3000"
+API_PORT="4000"                 # Express API port
+API_URL="http://localhost:4000" # where the frontend sends /api/* requests
 ```
 
 4. Restart `npm run dev`, open an invoice and click **Send**.
@@ -125,8 +143,8 @@ About 3 hours in total, within the 3-hour limit.
 
 - **No PDF attachment in emails:** the email contains the full invoice and a link to view it online. PDF export is done through the browser.
 - **No authentication,** as the brief allows.
-- **Runs locally:** SQLite suits local use. For hosting (e.g. Vercel), the database would move to Postgres, which needs only a Prisma provider and adapter change.
+- **Runs locally:** SQLite suits local use. For hosting, the Express API would run on a Node host (e.g. Render or Railway), the frontend on Vercel with `API_URL` pointing at the API, and the database would move to Postgres (only a Prisma provider and adapter change).
 - **No rate limiting** on the email endpoint.
 - **Client-side dashboard filtering:** fine at this scale. Large datasets would need search and pagination on the server.
 - **Not built:** deleting or duplicating invoices, bulk actions, logo upload, currencies other than USD, and dark mode.
-- **Tests cover the money, totals and validation logic.** The API and UI were tested manually in the browser.
+- **Tests cover the money, totals and validation logic, plus the API routes** (run against a temporary SQLite database). The UI was tested manually in the browser.

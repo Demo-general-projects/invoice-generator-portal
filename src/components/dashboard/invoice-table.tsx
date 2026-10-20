@@ -28,7 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDate } from "@/lib/dates";
-import type { InvoiceSummary } from "@/lib/invoices";
+import type { InvoiceSummary } from "@/lib/api-types";
 import { formatUSD } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -361,7 +361,7 @@ function PagerButton({ disabled, onClick, children }: { disabled: boolean; onCli
   );
 }
 
-function StatusBadge({ sentAt }: { sentAt: Date | null }) {
+function StatusBadge({ sentAt }: { sentAt: string | null }) {
   const sent = sentAt !== null;
   return (
     <span

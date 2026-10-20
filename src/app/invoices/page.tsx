@@ -1,16 +1,15 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { connection } from "next/server";
 import { Plus } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { InvoiceTable } from "@/components/dashboard/invoice-table";
-import { listInvoices } from "@/lib/invoices";
+import { apiGet } from "@/lib/api-client";
+import type { InvoiceSummary } from "@/lib/api-types";
 
 export const metadata: Metadata = { title: "Invoices · Ledgerline" };
 
 export default async function InvoicesPage() {
-  await connection();
-  const invoices = await listInvoices();
+  const invoices = (await apiGet<{ invoices: InvoiceSummary[] }>("/api/invoices"))?.invoices ?? [];
   return (
     <DashboardShell invoiceCount={invoices.length}>
       {/* On mobile the top bar already carries the brand and action, so this bar is for screen readers only. */}

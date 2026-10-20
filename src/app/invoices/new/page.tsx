@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
-import { connection } from "next/server";
 import { InvoiceEditor } from "@/components/invoice/invoice-editor";
-import { todayISO } from "@/lib/dates";
-import { latestBusinessDetails, suggestInvoiceNumber } from "@/lib/invoices";
+import { apiGet } from "@/lib/api-client";
+import type { InvoiceDefaults } from "@/lib/api-types";
 
 export const metadata: Metadata = { title: "New invoice · Ledgerline" };
 
 export default async function NewInvoicePage() {
-  await connection(); // invoice number and dates depend on the current data and day
-  const [number, business] = await Promise.all([suggestInvoiceNumber(), latestBusinessDetails()]);
+  // Suggested number, dates and sender details come from the API on every request.
+  const defaults = await apiGet<InvoiceDefaults>("/api/invoices/defaults");
+  if (!defaults) throw new Error("The API did not return invoice defaults.");
+  const { number, issueDate, dueDate, business } = defaults;
   return (
     <InvoiceEditor
       initialValues={{
         number,
-        issueDate: todayISO(),
-        dueDate: todayISO(30),
+        issueDate,
+        dueDate,
         businessName: business?.businessName ?? "",
         businessEmail: business?.businessEmail ?? "",
         businessAddress: business?.businessAddress ?? "",

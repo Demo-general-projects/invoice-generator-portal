@@ -1,7 +1,7 @@
 // Seeds one fictional invoice so the app has something to show on first run.
 import "dotenv/config";
-import { createInvoice } from "../src/lib/invoices";
-import { db } from "../src/lib/db";
+import { createInvoice } from "../server/invoices";
+import { db } from "../server/db";
 
 async function main() {
   if (await db.invoice.findUnique({ where: { number: "INV-0001" } })) {

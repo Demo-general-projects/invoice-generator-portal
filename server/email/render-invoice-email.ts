@@ -1,7 +1,7 @@
-import { formatDate } from "../dates";
+import { formatDate } from "../../src/lib/dates";
 import type { StoredInvoice } from "../invoices";
-import { formatDecimal, formatUSD } from "../money";
-import { calculateTotals } from "../totals";
+import { formatDecimal, formatUSD } from "../../src/lib/money";
+import { calculateTotals } from "../../src/lib/totals";
 
 const escape = (value: string) =>
   value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);

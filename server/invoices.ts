@@ -1,10 +1,11 @@
-import { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "../src/generated/prisma/client";
 import { db } from "./db";
-import type { InvoiceInput } from "./invoice-schema";
-import { calculateTotals } from "./totals";
+import type { InvoiceSummary } from "../src/lib/api-types";
+import type { InvoiceInput } from "../src/lib/invoice-schema";
+import { calculateTotals } from "../src/lib/totals";
 
-// Server-only data access. Routes and pages go through these functions so the
-// Prisma shape never leaks into the UI.
+// Data access for the API server. Routes go through these functions so the
+// Prisma shape never leaks into responses.
 
 const withChildren = {
   lineItems: { orderBy: { position: "asc" } },
@@ -59,7 +60,7 @@ export async function getInvoice(id: string): Promise<StoredInvoice | null> {
   return record ? toStored(record) : null;
 }
 
-export async function listInvoices() {
+export async function listInvoices(): Promise<InvoiceSummary[]> {
   const records = await db.invoice.findMany({ include: withChildren, orderBy: { updatedAt: "desc" } });
   return records.map((record) => {
     const invoice = toStored(record);
@@ -72,8 +73,8 @@ export async function listInvoices() {
       dueDate: invoice.dueDate,
       totalCents: calculateTotals(invoice).totalCents,
       itemCount: invoice.lineItems.length,
-      lastSentAt: invoice.lastSentAt,
-      updatedAt: invoice.updatedAt,
+      lastSentAt: invoice.lastSentAt?.toISOString() ?? null,
+      updatedAt: invoice.updatedAt.toISOString(),
     };
   });
 }
@@ -136,4 +137,3 @@ export async function latestBusinessDetails() {
   });
 }
 
-export type InvoiceSummary = Awaited<ReturnType<typeof listInvoices>>[number];
