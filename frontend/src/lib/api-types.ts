@@ -1,4 +1,4 @@
-// Frontend copy. The backend keeps its own copy in backend/src/domain/api-types.ts; keep them in sync.
+// JSON shapes of the Laravel API (backend/app/Http/Resources/ and InvoiceController); keep them in sync.
 import type { InvoiceInput } from "./invoice-schema";
 import type { Totals } from "./totals";
 

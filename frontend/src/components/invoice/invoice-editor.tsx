@@ -8,9 +8,11 @@ import { FormProvider, useForm, useWatch, type FieldErrors } from "react-hook-fo
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
+import { apiUrl } from "@/lib/api-client";
 import { formToInput, invoiceFormSchema, type EmailRequest, type InvoiceFormValues } from "@/lib/invoice-schema";
 import { formatUSD } from "@/lib/money";
 import { derivePreview } from "@/lib/preview";
+import { invoicePath } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import { CustomFieldsEditor } from "./custom-fields-editor";
 import { EmailDialog } from "./email-dialog";
@@ -57,7 +59,7 @@ export function InvoiceEditor({ invoiceId, initialValues, initialAction }: Props
       async (formValues) => {
         setSaving(true);
         try {
-          const res = await fetch(savedId ? `/api/invoices/${savedId}` : "/api/invoices", {
+          const res = await fetch(apiUrl(savedId ? `/api/invoices/${savedId}` : "/api/invoices"), {
             method: savedId ? "PUT" : "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(formToInput(formValues)),
@@ -70,7 +72,7 @@ export function InvoiceEditor({ invoiceId, initialValues, initialAction }: Props
           }
           reset(formValues);
           setSavedId(body.invoice.id);
-          if (!savedId) router.replace(`/invoices/${body.invoice.id}`, { scroll: false });
+          if (!savedId) router.replace(invoicePath(body.invoice.id), { scroll: false });
           result = body.invoice.id;
         } catch {
           toast.error("Network error. Check your connection and try again.");
@@ -96,7 +98,7 @@ export function InvoiceEditor({ invoiceId, initialValues, initialAction }: Props
       setEmailOpen(false);
       return "Save failed";
     }
-    const res = await fetch(`/api/invoices/${id}/email`, {
+    const res = await fetch(apiUrl(`/api/invoices/${id}/email`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
@@ -113,7 +115,7 @@ export function InvoiceEditor({ invoiceId, initialValues, initialAction }: Props
   useEffect(() => {
     if (!initialAction || !invoiceId || handledAction.current) return;
     handledAction.current = true;
-    router.replace(`/invoices/${invoiceId}`, { scroll: false });
+    router.replace(invoicePath(invoiceId), { scroll: false });
     if (initialAction === "print") document.fonts.ready.then(() => window.print());
   }, [initialAction, invoiceId, router]);
 

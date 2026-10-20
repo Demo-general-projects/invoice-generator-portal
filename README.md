@@ -4,23 +4,23 @@ A browser-based invoice tool for small businesses: create and edit invoices with
 
 All data in this project is fictional.
 
-> **Branch `Dc-Node`: standalone Node.js backend, independent frontend and backend.**
-> Compared with `main` (where the API runs inside Next.js), this branch:
-> - moves the API to a standalone **Node.js + Express** server;
-> - splits the repository into two self-contained projects, **`frontend/`** (Next.js) and **`backend/`** (Express + SQLite).
+> **Branch `Dc-Laravel`: Laravel backend serving a static frontend.**
+> Compared with `Dc-Node` (Node.js + Express backend, Next.js server), this branch:
+> - rewrites the API in **Laravel 13 (PHP 8.3)** with the same endpoints, JSON and rules, still on **SQLite**;
+> - builds the **Next.js** frontend as plain static files that Laravel serves from `public/app`, so the whole app runs as **one Laravel application on one domain**.
 >
-> Each project has its own `package.json`, lockfile, config, tests, `.env` and README, so each can be built, tested and deployed on its own, on any platform. They communicate only over HTTP. The features and the invoice design are the same as on `main`.
+> `frontend/` and `backend/` remain separate projects, each with its own dependencies, tests and README. The features and the invoice design are the same as on `main`.
 
 ## Tech stack
 
 | Area | Technology |
 |---|---|
-| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui (Base UI), React Hook Form + Zod |
-| Backend | Node.js + Express 5 REST API (TypeScript), Zod validation on the server |
-| Database | SQLite via Prisma 7 |
-| Email | Nodemailer over SMTP (Resend used for the demo) |
+| Frontend | Next.js 16 (App Router, static export), React 19, TypeScript, Tailwind CSS 4, shadcn/ui (Base UI), React Hook Form + Zod |
+| Backend | Laravel 13 REST API (PHP 8.3), Form Request validation, Eloquent |
+| Database | SQLite |
+| Email | Laravel Mail over SMTP (Resend used for the demo) |
 | PDF | Browser Print / Save as PDF with print-specific CSS |
-| Tests | Vitest (unit tests), Supertest (API tests), ESLint |
+| Tests | PHPUnit (backend unit and API tests), Vitest (frontend), Laravel Pint and ESLint |
 
 ## Features
 
@@ -42,42 +42,38 @@ All data in this project is fictional.
 ## Architecture
 
 ```
-Browser ──► frontend/ (Next.js, port 3000) ──HTTP /api/*──► backend/ (Express, port 4000) ──► Prisma ──► SQLite
-                                                                       └──► Nodemailer ──► SMTP (Resend)
+Browser ──► Laravel (backend/, one domain)
+              ├── /app/*   the frontend: static HTML, CSS and JS in public/app
+              ├── /api/*   JSON API (routes/api.php) ──► Eloquent ──► SQLite
+              │                                   └──► Laravel Mail ──► SMTP (Resend)
+              └── /        redirects to /app/invoices/
 ```
 
 ```
 invoice-generator/
-├── frontend/    Next.js app: pages, UI, live preview, print. See frontend/README.md
-├── backend/     Express API: routes, validation, SQLite via Prisma, email. See backend/README.md
+├── frontend/    Next.js app: pages, UI, live preview, print. Builds to static files. See frontend/README.md
+├── backend/     Laravel app: API, validation, SQLite, email, and hosting of the built frontend. See backend/README.md
 └── .github/     CI: one workflow per app, triggered only by changes in its folder
 ```
 
-- **Independent projects:** neither folder imports from the other, so they can live on different hosts.
-- **Connection:** the frontend reaches the backend through `API_URL`. Its `/api/*` routes are forwarded to the backend on the server side, so the browser only talks to the frontend's own domain and no CORS setup is needed.
+- **One app to host:** `php artisan frontend:build` builds the frontend and copies it into `backend/public/app`. Laravel then serves the pages and the API from the same domain, so no CORS or proxy is needed.
+- **Separate projects:** neither folder imports code from the other. The frontend calls the API only over HTTP and could also be hosted on its own (see [`frontend/README.md`](frontend/README.md)).
 - **The backend is the source of truth:** it re-validates every request and calculates all totals.
-- **Copied domain rules:** money, totals, dates, validation and API types are copied into each project (`backend/src/domain/`, `frontend/src/lib/`) rather than shared. The frontend copy only drives the live preview and instant form errors. Each copy has a "keep in sync" header, and both test suites check the same cases, including the $99.00 example.
+- **Rules in both apps:** money, totals and validation rules exist in PHP (`backend/app/Domain/`, `backend/app/Http/Requests/`) and in TypeScript (`frontend/src/lib/`). The frontend copy only drives the live preview and instant form errors. Both test suites check the same cases, including the $99.00 example.
+- **Pages load data in the browser:** the frontend is a static export, so each page fetches its data from `/api` after it opens. An invoice opens at `/app/invoices/edit/?id=…`.
 
 **What happens on save and send:**
 
 1. The editor validates the form in the browser and sends integer amounts to `POST /api/invoices` (or `PUT` to update).
-2. The backend validates again, saves through Prisma and returns the invoice with server-calculated totals.
-3. Send calls `POST /api/invoices/:id/email`. The backend loads the saved invoice, renders the email and sends it over SMTP, so the email always matches what was stored.
+2. Laravel validates again, saves the invoice, its line items and custom fields in one transaction, and returns the invoice with server-calculated totals.
+3. Send calls `POST /api/invoices/{id}/email`. Laravel loads the saved invoice, renders the email and sends it over SMTP, so the email always matches what was stored.
 
 ## Run on localhost
 
-The app has two parts that run side by side, each in its own terminal:
-
-| App | Folder | Address |
-|---|---|---|
-| Backend (Express API + SQLite) | `backend/` | <http://localhost:4000> |
-| Frontend (Next.js) | `frontend/` | <http://localhost:3000> |
-
-Start the backend first, because the frontend loads its data from it.
-
 ### Requirements
 
-- **Node.js 20.9 or later** (both folders include an `.nvmrc` for Node 22, so `nvm use` picks it up) and **npm**. Check with `node -v`.
+- **PHP 8.3 or later** with the `pdo_sqlite` extension, and **Composer**. Check with `php -v` and `composer -V`.
+- **Node.js 20.9 or later** and **npm**, to build the frontend. Check with `node -v`.
 - **Git**, to clone the repository.
 - **SMTP login (optional):** only needed to send emails. Everything else works without it.
 
@@ -86,73 +82,84 @@ Start the backend first, because the frontend loads its data from it.
 ```bash
 git clone https://github.com/Demo-general-projects/invoice-generator.git
 cd invoice-generator
-git checkout Dc-Node
+git checkout Dc-Laravel
 ```
 
-### 2. Start the backend (terminal 1)
+### 2. Set up the backend (once)
 
 ```bash
 cd backend
-cp .env.example .env     # local settings; add SMTP values to enable email (see Email setup)
-npm install              # installs packages and generates the Prisma client
-npm run setup            # creates the SQLite database (backend/dev.db) and a sample invoice, INV-0001
-npm run dev              # starts the API on http://localhost:4000
+composer install            # downloads Laravel's packages into backend/vendor
+composer setup              # creates .env, an app key, the SQLite database and a sample invoice (INV-0001)
 ```
 
-The terminal shows `Ledgerline API listening on http://localhost:4000`. To check it, open <http://localhost:4000/api/health>, which returns `{"ok":true}`.
+To send emails, add your SMTP details to `backend/.env` (see [Email setup](#email-setup)).
 
-### 3. Start the frontend (terminal 2)
+### 3. Build the frontend into Laravel (once, and after frontend changes)
 
 ```bash
+php artisan frontend:build  # runs npm ci and npm run build in ../frontend, then copies the result to public/app
+```
+
+### 4. Start the app
+
+```bash
+php artisan serve           # http://localhost:8000
+```
+
+Open <http://localhost:8000>. The invoices dashboard opens and shows the sample invoice INV-0001 ($99.00). Click **New invoice** to create one. To check the API alone, open <http://localhost:8000/api/health>, which returns `{"ok":true}`.
+
+Press `Ctrl + C` to stop. Invoices stay in `backend/database/database.sqlite` between runs. Next time, only step 4 is needed.
+
+### Working on the frontend (optional)
+
+To see frontend changes instantly instead of rebuilding, run the Next.js dev server next to Laravel:
+
+```bash
+# Terminal 1
+cd backend && php artisan serve          # API on http://localhost:8000
+
+# Terminal 2
 cd frontend
-cp .env.example .env     # API_URL=http://localhost:4000
+cp .env.example .env                     # API_URL=http://localhost:8000
 npm install
-npm run dev              # starts the app on http://localhost:3000
+npm run dev                              # app on http://localhost:3000/app/
 ```
 
-### 4. Open the app
-
-Go to <http://localhost:3000>. The invoices dashboard opens and shows the sample invoice INV-0001 ($99.00). Click **New invoice** to create one.
-
-### Next time
-
-The install and setup steps are only needed once. After that, start the two apps with:
-
-```bash
-cd backend && npm run dev      # terminal 1
-cd frontend && npm run dev     # terminal 2
-```
-
-Press `Ctrl + C` in each terminal to stop them. Invoices stay in `backend/dev.db` between runs.
+The dev server forwards `/api/*` to Laravel. When you're done, run `php artisan frontend:build` again so Laravel serves the latest version.
 
 ### Troubleshooting
 
-- **The app says it can't reach the API:** the backend isn't running, or `API_URL` in `frontend/.env` doesn't match the backend's address. Start the backend, then reload the page.
-- **"Port already in use":** another process is using port 3000 or 4000. Stop it, or change the port. For the backend, set `API_PORT` in `backend/.env`, then update `API_URL` in `frontend/.env` to match and restart the frontend. For the frontend, run `npm run dev -- -p 3001` and set `APP_URL` in `backend/.env` to the new address.
-- **Sending email returns "not configured":** fill in the `SMTP_*` and `EMAIL_FROM` values in `backend/.env`, then restart the backend.
-- **Start again with an empty database:** stop the backend, delete `backend/dev.db`, then run `npm run setup` again.
+- **The page says "The frontend has not been built yet":** run `php artisan frontend:build` in `backend/`.
+- **The app says it can't reach the API:** the backend isn't running. Start it with `php artisan serve`, then reload the page.
+- **"Port already in use":** another process is using port 8000. Run `php artisan serve --port=8001` and set `APP_URL=http://localhost:8001` in `backend/.env`.
+- **Sending email returns "not configured":** set `MAIL_MAILER=smtp` and the other `MAIL_*` values in `backend/.env`, then restart `php artisan serve`.
+- **Start again with an empty database:** run `php artisan migrate:fresh --seed` in `backend/`.
 
 ## Tests and CI
 
-Run the checks inside each folder:
-
 ```bash
-npm test             # backend: domain + API tests; frontend: calculation + form-validation tests
+cd backend
+php artisan test       # PHPUnit: totals and money rules, plus every API endpoint against an in-memory SQLite database
+composer lint          # Laravel Pint code style check
+
+cd ../frontend
+npm test               # Vitest: calculations and form validation
 npm run lint
 npm run typecheck
-npm run build
+npm run build          # static export to frontend/out
 ```
 
 GitHub Actions runs these checks with one workflow per app (`.github/workflows/backend.yml`, `frontend.yml`). Each workflow runs only when files in its own folder change. CI only checks the code; it does not deploy.
 
 ## Storage
 
-- Invoices are stored in **SQLite** (`backend/dev.db`) through **Prisma**. The database file is not committed.
-- The schema is in [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma): `Invoice`, `LineItem` and `CustomField`.
+- Invoices are stored in **SQLite** (`backend/database/database.sqlite`) through **Eloquent**. The database file is not committed.
+- The schema is in [`backend/database/migrations/`](backend/database/migrations/): `invoices`, `line_items` and `custom_fields`.
 - Money is stored as integer cents, quantity in hundredths and tax in basis points, so no floating-point rounding errors can occur.
-- Totals are always calculated from the line items, never stored separately.
+- Totals are always calculated from the line items ([`backend/app/Domain/Totals.php`](backend/app/Domain/Totals.php)), never stored.
 
-### API (Express, `backend/src/routes/invoices.ts`)
+### API (Laravel, `backend/routes/api.php`)
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -160,9 +167,11 @@ GitHub Actions runs these checks with one workflow per app (`.github/workflows/b
 | `GET` | `/api/invoices` | List invoices |
 | `GET` | `/api/invoices/defaults` | Suggested number, dates and sender details for a new invoice |
 | `POST` | `/api/invoices` | Create an invoice |
-| `GET` | `/api/invoices/:id` | Get one invoice |
-| `PUT` | `/api/invoices/:id` | Update an invoice |
-| `POST` | `/api/invoices/:id/email` | Email a saved invoice |
+| `GET` | `/api/invoices/{id}` | Get one invoice |
+| `PUT` | `/api/invoices/{id}` | Update an invoice |
+| `POST` | `/api/invoices/{id}/email` | Email a saved invoice |
+
+Errors always use `{ "error": { "message", "fieldErrors"? } }`. Details are in [`backend/README.md`](backend/README.md).
 
 ## Environment variables
 
@@ -170,26 +179,30 @@ Each app has its own `.env` (gitignored) and `.env.example`.
 
 | App | Variable | Purpose |
 |---|---|---|
-| backend | `DATABASE_URL` | SQLite file: `file:./dev.db` locally, a persistent-disk path when hosted |
-| backend | `PORT` / `API_PORT` | Port to listen on (hosts usually set `PORT`; `API_PORT` is the local default, 4000) |
-| backend | `APP_URL` | Frontend's public URL, used for the "View invoice online" link in emails |
-| backend | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` | Email sending; `EMAIL_FROM` must be `Name <address>` |
-| frontend | `API_URL` | Base URL of the backend |
+| backend | `APP_KEY` | Laravel's encryption key, created by `composer setup` |
+| backend | `APP_URL` | Where the app runs, e.g. `http://localhost:8000`. The "View invoice online" link in emails points to `APP_URL/app` |
+| backend | `DB_DATABASE` | Optional SQLite file path. Default: `database/database.sqlite`; on a host, a path on a persistent disk |
+| backend | `MAIL_MAILER`, `MAIL_SCHEME`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` | Email sending over SMTP |
+| frontend | `API_URL` | Development only: where `npm run dev` forwards `/api/*` (default `http://localhost:8000`) |
+| frontend | `NEXT_PUBLIC_API_URL` | Optional, at build time: an API on another domain, if the frontend is hosted separately |
 
 ## Deployment
 
-The two apps deploy separately; set each host's root directory to the app's folder.
+The usual setup is a single Laravel application: build the frontend into `public/app`, then deploy `backend/` like any Laravel app.
 
-| App | Suitable hosts | Build | Start | Key settings |
-|---|---|---|---|---|
-| `backend/` | Render (disk), Railway (volume), Fly.io (volume), any VM | `npm ci && npm run build` | `npm start` (applies migrations first) | `DATABASE_URL` on a persistent disk, `APP_URL`, SMTP values |
-| `frontend/` | Vercel, AWS Amplify, Netlify, Render | `npm ci && npm run build` | `npm start` (or the host's Next.js runtime) | `API_URL` = the backend's public URL |
+| Step | Command (in `backend/`) |
+|---|---|
+| Install | `composer install --no-dev --optimize-autoloader` |
+| Build the frontend | `php artisan frontend:build` (needs Node.js on the build machine) |
+| Database | `php artisan migrate --force` |
+| Cache config and routes | `php artisan optimize` |
+| Web root | `backend/public` |
 
-Because SQLite is a single file, the backend needs a persistent disk and must run as a single instance. Full steps are in [`backend/README.md`](backend/README.md) and [`frontend/README.md`](frontend/README.md).
+**Suitable hosts:** any server with PHP 8.3 and a persistent disk, such as a VPS (DigitalOcean, Lightsail, EC2) with Nginx or Apache, Laravel Forge, Laravel Cloud, Ploi, or shared hosting that supports PHP 8.3. SQLite is a single file, so the app must run as one instance with the database on persistent storage. Full steps are in [`backend/README.md`](backend/README.md).
 
 ## Email setup
 
-Email is sent by the Express API over SMTP, so any provider works. Credentials stay on the server in `.env` and are never sent to the browser.
+Email is sent by Laravel over SMTP, so any provider works. Credentials stay on the server in `backend/.env` and are never sent to the browser.
 
 **Resend (used for the demo):**
 
@@ -198,14 +211,17 @@ Email is sent by the Express API over SMTP, so any provider works. Credentials s
 3. Add it to `backend/.env`:
 
 ```env
-SMTP_HOST="smtp.resend.com"
-SMTP_PORT="465"
-SMTP_USER="resend"
-SMTP_PASS="your-resend-api-key"
-EMAIL_FROM="Acme Studio <onboarding@resend.dev>"
+MAIL_MAILER=smtp
+MAIL_SCHEME=smtps
+MAIL_HOST=smtp.resend.com
+MAIL_PORT=465
+MAIL_USERNAME=resend
+MAIL_PASSWORD=your-resend-api-key
+MAIL_FROM_ADDRESS="onboarding@resend.dev"
+MAIL_FROM_NAME="Acme Studio"
 ```
 
-4. Restart the backend (`npm run dev` in `backend/`), open an invoice and click **Send**.
+4. Restart `php artisan serve`, open an invoice and click **Send**.
 
 Without a verified domain, Resend only delivers to your own account email, which suits testing. Other SMTP providers, such as Gmail with an app password, work the same way.
 
@@ -219,7 +235,7 @@ tax        = round(taxable × tax rate)
 total      = taxable + tax
 ```
 
-Example from the brief: 2 × $50 − $10 discount + 10% tax = **$99.00**. This is covered by a unit test and is used as the sample invoice.
+Example from the brief: 2 × $50 − $10 discount + 10% tax = **$99.00**. This is covered by tests in both apps and is used as the sample invoice.
 
 ## Design decisions
 
@@ -227,8 +243,9 @@ Example from the brief: 2 × $50 − $10 discount + 10% tax = **$99.00**. This i
 - **Preview matches print:** the preview is the same Letter-size document that gets printed, so the PDF looks exactly like the screen.
 - **Reliable printing:** the invoice includes its own page margins, so it prints correctly under Chrome's Default, None or Minimum margin settings.
 - **Single form instead of tabs:** section links at the top jump through one scrolling form, so a validation error is never hidden on another tab.
-- **Same validation in both apps:** the same rules run in the browser (for instant feedback) and on the server (as the final check). Each app keeps its own copy, so neither depends on the other.
-- **Separate projects instead of one Next.js app:** the frontend and backend can be hosted, scaled and released independently, with the API reachable by any client.
+- **Same validation in both apps:** the same rules run in the browser (for instant feedback) and on the server (as the final check).
+- **Static frontend inside Laravel:** one application, one domain and one deployment, with no Node.js server needed in production. The frontend still lives in its own folder and builds independently.
+- **Same API contract as before:** the Laravel API returns the same JSON field names and error format as the earlier Node.js API, so the frontend's forms and types did not change.
 - **Focused scope:** only features supported by real data were built. For example, Sent/Draft status comes from whether the invoice was emailed; there is no payment tracking.
 
 ## AI tools used
@@ -240,14 +257,15 @@ Built with **Claude Code** (Anthropic) as a pair programmer.
 
 ## Time spent
 
-About 3 hours in total for the exercise, within the 3-hour limit. The standalone backend and the frontend/backend split on this branch were added afterwards as a follow-up.
+About 3 hours in total for the exercise, within the 3-hour limit. The standalone backend, the frontend/backend split and the Laravel version on this branch were added afterwards as a follow-up.
 
 ## Unfinished work and limitations
 
 - **No PDF attachment in emails:** the email contains the full invoice and a link to view it online. PDF export is done through the browser.
 - **No authentication,** as the brief allows.
-- **SQLite hosting needs a persistent disk:** the backend must run as a single instance on a host with persistent storage, such as Render with a disk, Railway with a volume, Fly.io or a VM. The frontend can run anywhere that supports Next.js. Both READMEs have the details.
+- **SQLite hosting needs a persistent disk:** the app must run as a single instance on a server with persistent storage.
+- **Pages show a short loading state:** the frontend is static, so data loads after the page opens.
 - **No rate limiting** on the email endpoint.
 - **Client-side dashboard filtering:** fine at this scale. Large datasets would need search and pagination on the server.
 - **Not built:** deleting or duplicating invoices, bulk actions, logo upload, currencies other than USD, and dark mode.
-- **Tests:** the backend covers domain logic and API routes (against a temporary SQLite database); the frontend covers its copy of the calculations and form validation. The UI was tested manually in the browser.
+- **Tests:** the backend covers the money rules and every API endpoint (PHPUnit, in-memory SQLite); the frontend covers its calculations and form validation. The UI was tested manually in the browser.

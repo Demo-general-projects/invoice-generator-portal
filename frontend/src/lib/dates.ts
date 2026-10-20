@@ -1,4 +1,3 @@
-// Frontend copy. The backend keeps its own copy in backend/src/domain/dates.ts; keep them in sync.
 // Invoice dates are calendar dates ("YYYY-MM-DD"), not instants, so they are
 // formatted in UTC to stay identical in every timezone.
 

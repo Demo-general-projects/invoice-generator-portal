@@ -30,6 +30,7 @@ import {
 import { formatDate } from "@/lib/dates";
 import type { InvoiceSummary } from "@/lib/api-types";
 import { formatUSD } from "@/lib/money";
+import { invoicePath } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 const PAD = "px-4 sm:px-6 lg:px-8";
@@ -103,7 +104,7 @@ export function InvoiceTable({ invoices }: { invoices: InvoiceSummary[] }) {
   // Whole rows are clickable for pointer users; keyboard users use the links and menu.
   const openRow = (id: string) => (event: MouseEvent) => {
     if ((event.target as HTMLElement).closest("a, button, [role=menu]")) return;
-    router.push(`/invoices/${id}`);
+    router.push(invoicePath(id));
   };
 
   const sortHeader = (key: SortKey, label: string, className?: string) => (
@@ -231,7 +232,7 @@ export function InvoiceTable({ invoices }: { invoices: InvoiceSummary[] }) {
                     >
                       <td className="h-[3.75rem] pr-3 pl-6">
                         <Link
-                          href={`/invoices/${invoice.id}`}
+                          href={invoicePath(invoice.id)}
                           className="rounded font-medium text-foreground tabular-nums underline-offset-4 hover:text-primary hover:underline"
                         >
                           {invoice.number}
@@ -260,7 +261,7 @@ export function InvoiceTable({ invoices }: { invoices: InvoiceSummary[] }) {
               {visible.map((invoice) => (
                 <li key={invoice.id}>
                   <Link
-                    href={`/invoices/${invoice.id}`}
+                    href={invoicePath(invoice.id)}
                     className="block rounded-2xl border border-border bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] active:bg-[#f5f7fb]"
                   >
                     <div className="flex items-center justify-between gap-3">
@@ -324,7 +325,7 @@ export function InvoiceTable({ invoices }: { invoices: InvoiceSummary[] }) {
 
 function RowActions({ invoice }: { invoice: InvoiceSummary }) {
   const router = useRouter();
-  const go = (suffix = "") => router.push(`/invoices/${invoice.id}${suffix}`);
+  const go = (action?: "print" | "email") => router.push(invoicePath(invoice.id, action));
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -337,10 +338,10 @@ function RowActions({ invoice }: { invoice: InvoiceSummary }) {
         <DropdownMenuItem onClick={() => go()}>
           <PencilLine aria-hidden /> Edit invoice
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => go("?action=print")}>
+        <DropdownMenuItem onClick={() => go("print")}>
           <Printer aria-hidden /> Print / Save PDF
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => go("?action=email")}>
+        <DropdownMenuItem onClick={() => go("email")}>
           <Mail aria-hidden /> Send by email
         </DropdownMenuItem>
       </DropdownMenuContent>

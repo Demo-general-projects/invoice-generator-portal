@@ -1,13 +1,11 @@
 import type { NextConfig } from "next";
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 
-const apiUrl = process.env.API_URL ?? "http://localhost:4000";
-
-const nextConfig: NextConfig = {
-  // Every page reads per-request invoice data, so Cache Components/PPR add nothing here.
-  // The backend is a separate Express server; the browser keeps calling /api/* on this origin.
-  async rewrites() {
-    return [{ source: "/api/:path*", destination: `${apiUrl}/api/:path*` }];
-  },
+// The app is served from /app: Laravel hosts the static build in backend/public/app
+// and its API under /api on the same domain.
+const base: NextConfig = {
+  basePath: "/app",
+  trailingSlash: true, // /app/invoices/ -> invoices/index.html, which any web server can serve
   turbopack: {
     rules: {
       "*.css": {
@@ -18,4 +16,20 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default function config(phase: string): NextConfig {
+  if (phase === PHASE_DEVELOPMENT_SERVER) {
+    // In development the Laravel API runs separately; forward /api/* to it so
+    // the browser keeps calling its own origin, as it does in production.
+    const apiUrl = process.env.API_URL ?? "http://localhost:8000";
+    return {
+      ...base,
+      // Otherwise trailingSlash would first redirect /api/invoices to /api/invoices/.
+      skipTrailingSlashRedirect: true,
+      async rewrites() {
+        return [{ source: "/api/:path*", destination: `${apiUrl}/api/:path*`, basePath: false }];
+      },
+    };
+  }
+  // `next build` writes plain HTML, CSS and JS to out/, ready for backend/public/app.
+  return { ...base, output: "export" };
+}

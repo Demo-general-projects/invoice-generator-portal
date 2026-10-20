@@ -1,6 +1,6 @@
 name: Frontend
 
-# Runs only when the frontend changes. Checks and builds; no deployment.
+# Runs only when the frontend changes. Checks and builds the static export; no deployment.
 on:
   push:
     paths: ["frontend/**", ".github/workflows/frontend.yml"]
@@ -13,8 +13,6 @@ jobs:
     defaults:
       run:
         working-directory: frontend
-    env:
-      API_URL: http://localhost:4000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -1,4 +1,4 @@
-// Frontend copy. The backend keeps its own copy in backend/src/domain/totals.ts; keep them in sync.
+// Frontend copy of the totals rules. The backend's are in backend/app/Domain/Totals.php; keep them in sync.
 import { roundDiv } from "./money";
 
 export type TotalsLine = { quantityHundredths: number; unitPriceCents: number };

@@ -1,6 +1,6 @@
 // Frontend copy of the invoice rules, used for instant form feedback and the
-// live preview. The API re-validates with its own copy (backend/src/domain/
-// invoice-schema.ts), which is the source of truth; keep the rules in sync.
+// live preview. The API re-validates with its own rules (backend/app/Http/
+// Requests/InvoiceRequest.php), which are the source of truth; keep them in sync.
 import { z } from "zod";
 import { centsToInput, formatDecimal, formatUSD, parseDecimal } from "./money";
 import { calculateTotals } from "./totals";

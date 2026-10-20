@@ -1,4 +1,4 @@
-// Frontend copy. The backend keeps its own copy in backend/src/domain/money.ts; keep them in sync.
+// Frontend copy of the money rules. The backend's are in backend/app/Domain/Money.php; keep them in sync.
 // All amounts are integers in their smallest unit: money in cents, quantity in
 // hundredths, tax in basis points. User input is parsed from strings so no
 // binary floating-point value is ever used in a calculation.
