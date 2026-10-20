@@ -4,16 +4,10 @@ A browser-based invoice tool for small businesses: create and edit invoices with
 
 All data in this project is fictional.
 
-> **Branch `Dc-Node`: standalone Node.js backend.**
-> This branch moves the backend into a separate **Node.js + Express** API server (`server/`). The Next.js app becomes a pure frontend.
-> Features, UI, database and calculations are the same as `main`, where the API is served by Next.js route handlers.
->
-> | | `main` | `Dc-Node` (this branch) |
-> |---|---|---|
-> | Backend | Next.js route handlers | Express 5 server on Node.js (port 4000) |
-> | Processes | 1 (`next dev`) | 2, started together by `npm run dev` |
-> | Data access and email code | `src/lib/` | `server/` |
-> | API tests | none | Supertest against a temporary SQLite database |
+> **Branch `Dc-Split`: independent frontend and backend.**
+> The app is split into two self-contained projects, **`frontend/`** (Next.js) and **`backend/`** (Node.js + Express + SQLite).
+> Each has its own `package.json`, lockfile, config, tests, `.env` and README, so each can be built, tested and deployed on its own, on any platform.
+> They communicate only over HTTP.
 
 ## Tech stack
 
@@ -46,65 +40,61 @@ All data in this project is fictional.
 ## Architecture
 
 ```
-Browser ──► Next.js frontend (port 3000) ──/api/* proxy──► Express API (port 4000) ──► Prisma ──► SQLite (dev.db)
-                                                                    └──► Nodemailer ──► SMTP (Resend)
+Browser ──► frontend/ (Next.js, port 3000) ──HTTP /api/*──► backend/ (Express, port 4000) ──► Prisma ──► SQLite
+                                                                       └──► Nodemailer ──► SMTP (Resend)
 ```
 
-- **`server/`**: the Node.js backend. Express routes, data access, and email sending. It is the only part that touches the database or SMTP credentials.
-- **`src/`**: the Next.js frontend. Pages load data from the API, and the browser calls `/api/*`, which Next.js forwards to Express, so no CORS setup is needed.
-- **`src/lib/`**: code shared by both sides, including money handling, totals, validation rules and API types, so the browser and server always apply the same rules.
+```
+invoice-generator/
+├── frontend/    Next.js app: pages, UI, live preview, print. See frontend/README.md
+├── backend/     Express API: routes, validation, SQLite via Prisma, email. See backend/README.md
+└── .github/     CI: one workflow per app, triggered only by changes in its folder
+```
+
+- **Independent projects:** neither folder imports from the other, so they can live on different hosts.
+- **Connection:** the frontend reaches the backend through `API_URL`. Its `/api/*` routes are forwarded to the backend on the server side, so the browser only talks to the frontend's own domain and no CORS setup is needed.
+- **The backend is the source of truth:** it re-validates every request and calculates all totals.
+- **Copied domain rules:** money, totals, dates, validation and API types are copied into each project (`backend/src/domain/`, `frontend/src/lib/`) rather than shared. The frontend copy only drives the live preview and instant form errors. Each copy has a "keep in sync" header, and both test suites check the same cases, including the $99.00 example.
 
 **What happens on save and send:**
 
 1. The editor validates the form in the browser and sends integer amounts to `POST /api/invoices` (or `PUT` to update).
-2. Express validates the request again with the same Zod schema, saves it through Prisma and returns the invoice with server-calculated totals.
-3. Send calls `POST /api/invoices/:id/email`. Express loads the saved invoice from the database, renders the email and sends it over SMTP, so the email always matches what was stored.
-
-### Project structure
-
-```
-server/
-  index.ts                 starts the API (API_PORT, default 4000)
-  app.ts                   Express app: JSON parsing, routes, error handling
-  routes/invoices.ts       /api/invoices endpoints
-  invoices.ts, db.ts       data access with Prisma + SQLite
-  email/                   SMTP mailer and invoice email (HTML + text)
-  app.test.ts              API tests
-src/
-  app/                     Next.js pages: dashboard, new and edit invoice
-  components/              dashboard, editor, invoice document, email dialog
-  lib/                     shared: money, totals, validation, API types, API client
-prisma/                    schema, migrations, sample data
-```
+2. The backend validates again, saves through Prisma and returns the invoice with server-calculated totals.
+3. Send calls `POST /api/invoices/:id/email`. The backend loads the saved invoice, renders the email and sends it over SMTP, so the email always matches what was stored.
 
 ## Setup and run
 
-Requirements: Node.js 20.9 or later, and npm.
+Requirements: Node.js 20.9 or later, and npm. Run each app in its own terminal.
 
 ```bash
+# Terminal 1: backend (http://localhost:4000)
+cd backend
 cp .env.example .env     # fill in the SMTP values (see Email setup)
 npm install
 npm run setup            # creates the SQLite database and adds one sample invoice
-npm run dev              # starts the API (port 4000) and the web app (port 3000)
+npm run dev
+```
+
+```bash
+# Terminal 2: frontend (http://localhost:3000)
+cd frontend
+cp .env.example .env     # API_URL=http://localhost:4000
+npm install
+npm run dev
 ```
 
 Open <http://localhost:3000>.
 
-| Command | Purpose |
-|---|---|
-| `npm run dev` | Run API and frontend together (`dev:api` / `dev:web` run them separately) |
-| `npm test` | Run unit and API tests |
-| `npm run lint` | Lint the code |
-| `npm run build && npm start` | Production build of the frontend, then start API and frontend |
+Both folders provide `npm test`, `npm run lint`, `npm run typecheck`, `npm run build` and `npm start`.
 
 ## Storage
 
-- Invoices are stored in **SQLite** (`dev.db` in the project root) through **Prisma**. The database file is not committed.
-- The schema is in [`prisma/schema.prisma`](prisma/schema.prisma): `Invoice`, `LineItem` and `CustomField`.
+- Invoices are stored in **SQLite** (`backend/dev.db`) through **Prisma**. The database file is not committed.
+- The schema is in [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma): `Invoice`, `LineItem` and `CustomField`.
 - Money is stored as integer cents, quantity in hundredths and tax in basis points, so no floating-point rounding errors can occur.
 - Totals are always calculated from the line items, never stored separately.
 
-### API (Express, `server/routes/invoices.ts`)
+### API (Express, `backend/src/routes/invoices.ts`)
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -118,16 +108,15 @@ Open <http://localhost:3000>.
 
 ## Environment variables
 
-Copy `.env.example` to `.env`. The file is gitignored, so secrets are never committed.
+Each app has its own `.env` (gitignored) and `.env.example`.
 
-| Variable | Used by | Purpose |
+| App | Variable | Purpose |
 |---|---|---|
-| `DATABASE_URL` | API | SQLite file, default `file:./dev.db` |
-| `API_PORT` | API | Port of the Express server, default `4000` |
-| `API_URL` | Frontend | Where Next.js sends `/api/*` requests, default `http://localhost:4000` |
-| `APP_URL` | API | Base URL for the "View invoice online" link in emails |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | API | SMTP server login |
-| `EMAIL_FROM` | API | Sender, in the form `Name <address>` |
+| backend | `DATABASE_URL` | SQLite file: `file:./dev.db` locally, a persistent-disk path when hosted |
+| backend | `PORT` / `API_PORT` | Port to listen on (hosts usually set `PORT`; `API_PORT` is the local default, 4000) |
+| backend | `APP_URL` | Frontend's public URL, used for the "View invoice online" link in emails |
+| backend | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` | Email sending; `EMAIL_FROM` must be `Name <address>` |
+| frontend | `API_URL` | Base URL of the backend |
 
 ## Email setup
 
@@ -137,7 +126,7 @@ Email is sent by the Express API over SMTP, so any provider works. Credentials s
 
 1. Sign up at <https://resend.com> and verify your email address.
 2. Create an API key with **Sending access**.
-3. Add it to `.env`:
+3. Add it to `backend/.env`:
 
 ```env
 SMTP_HOST="smtp.resend.com"
@@ -147,7 +136,7 @@ SMTP_PASS="your-resend-api-key"
 EMAIL_FROM="Acme Studio <onboarding@resend.dev>"
 ```
 
-4. Restart `npm run dev`, open an invoice and click **Send**.
+4. Restart the backend (`npm run dev` in `backend/`), open an invoice and click **Send**.
 
 Without a verified domain, Resend only delivers to your own account email, which suits testing. Other SMTP providers, such as Gmail with an app password, work the same way.
 
@@ -181,14 +170,14 @@ Built with **Claude Code** (Anthropic) as a pair programmer.
 
 ## Time spent
 
-About 3 hours in total for the exercise, within the 3-hour limit. The standalone Express backend on this branch was added afterwards as a follow-up.
+About 3 hours in total for the exercise, within the 3-hour limit. The standalone backend and the frontend/backend split on this branch were added afterwards as a follow-up.
 
 ## Unfinished work and limitations
 
 - **No PDF attachment in emails:** the email contains the full invoice and a link to view it online. PDF export is done through the browser.
 - **No authentication,** as the brief allows.
-- **Runs locally:** SQLite suits local use. For hosting, the Express API would run on a Node host (e.g. Render or Railway), the frontend on Vercel with `API_URL` pointing at the API, and the database would move to Postgres (only a Prisma provider and adapter change).
+- **SQLite hosting needs a persistent disk:** the backend must run as a single instance on a host with persistent storage, such as Render with a disk, Railway with a volume, Fly.io or a VM. The frontend can run anywhere that supports Next.js. Both READMEs have the details.
 - **No rate limiting** on the email endpoint.
 - **Client-side dashboard filtering:** fine at this scale. Large datasets would need search and pagination on the server.
 - **Not built:** deleting or duplicating invoices, bulk actions, logo upload, currencies other than USD, and dark mode.
-- **Tests cover the money, totals and validation logic, plus the API routes** (run against a temporary SQLite database). The UI was tested manually in the browser.
+- **Tests:** the backend covers domain logic and API routes (against a temporary SQLite database); the frontend covers its copy of the calculations and form validation. The UI was tested manually in the browser.
