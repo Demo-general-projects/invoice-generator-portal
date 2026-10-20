@@ -7,12 +7,13 @@ const smtpEnvSchema = z.object({
   SMTP_PORT: z.coerce.number().int().positive(),
   SMTP_USER: z.string().min(1),
   SMTP_PASS: z.string().min(1),
-  EMAIL_FROM: z.string().min(1),
+  // Providers reject a bare name, so require `you@example.com` or `Name <you@example.com>`.
+  EMAIL_FROM: z.string().regex(/^(?:[^<>]+<[^\s<>]+@[^\s<>]+>|[^\s<>]+@[^\s<>]+)$/, "EMAIL_FROM"),
 });
 
 export class EmailNotConfiguredError extends Error {
-  constructor() {
-    super("Email isn't configured on the server. Add SMTP settings to .env (see README).");
+  constructor(detail = "Add SMTP settings to .env (see README).") {
+    super(`Email isn't configured on the server. ${detail}`);
   }
 }
 
@@ -20,7 +21,12 @@ let transporter: Transporter | undefined;
 
 function getConfig() {
   const env = smtpEnvSchema.safeParse(process.env);
-  if (!env.success) throw new EmailNotConfiguredError();
+  if (!env.success) {
+    const badFrom = env.error.issues.some((i) => i.path[0] === "EMAIL_FROM" && process.env.EMAIL_FROM);
+    throw new EmailNotConfiguredError(
+      badFrom ? 'EMAIL_FROM must look like "Name <you@example.com>".' : undefined,
+    );
+  }
   return env.data;
 }
 
