@@ -10,11 +10,11 @@ export function DashboardShell({ invoiceCount, children }: { invoiceCount: numbe
   return (
     <div className="min-h-dvh bg-white lg:pl-[17rem]">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[17rem] flex-col border-r border-border bg-background px-4 pt-6 pb-5 lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[17rem] flex-col border-r border-border bg-[#f3f6fa] px-4 pt-6 pb-5 lg:flex">
         <Brand />
         <div aria-hidden className="mx-1 mt-6 border-t border-dashed border-input" />
         <nav aria-label="Main" className="mt-6">
-          <ul className="flex flex-col gap-1.5">
+          <ul className="flex flex-col gap-2">
             <li>
               <Link
                 href="/invoices"

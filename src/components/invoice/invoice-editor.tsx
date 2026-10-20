@@ -18,7 +18,14 @@ import { Section, TextAreaField, TextField } from "./form-controls";
 import { InvoiceDocument } from "./invoice-document";
 import { LineItemsEditor } from "./line-items-editor";
 
-type Props = { invoiceId?: string; initialValues: InvoiceFormValues };
+export type EditorAction = "print" | "email";
+
+type Props = {
+  invoiceId?: string;
+  initialValues: InvoiceFormValues;
+  /** Opened from the invoice list's actions menu: print or open the email dialog on arrival. */
+  initialAction?: EditorAction;
+};
 
 const SECTIONS = [
   { id: "details", label: "Details" },
@@ -27,11 +34,11 @@ const SECTIONS = [
   { id: "notes", label: "Notes" },
 ];
 
-export function InvoiceEditor({ invoiceId, initialValues }: Props) {
+export function InvoiceEditor({ invoiceId, initialValues, initialAction }: Props) {
   const router = useRouter();
   const [savedId, setSavedId] = useState(invoiceId);
   const [saving, setSaving] = useState(false);
-  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(initialAction === "email");
   const [mobileView, setMobileView] = useState<"edit" | "preview">("edit");
 
   const form = useForm<InvoiceFormValues>({
@@ -100,6 +107,15 @@ export function InvoiceEditor({ invoiceId, initialValues }: Props) {
     toast.success(`Invoice sent to ${request.to}`);
     return null;
   }
+
+  // The email action opens the dialog via initial state; print runs once fonts are ready. Then drop the param.
+  const handledAction = useRef(false);
+  useEffect(() => {
+    if (!initialAction || !invoiceId || handledAction.current) return;
+    handledAction.current = true;
+    router.replace(`/invoices/${invoiceId}`, { scroll: false });
+    if (initialAction === "print") document.fonts.ready.then(() => window.print());
+  }, [initialAction, invoiceId, router]);
 
   // Warn before leaving with unsaved edits.
   useEffect(() => {
