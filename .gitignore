@@ -7,10 +7,8 @@ dist/
 coverage/
 *.tsbuildinfo
 
-# secrets and local data
-.env
+# local data (.env files are committed so a fresh clone runs as-is; they hold no real secrets)
 .env*.local
-!.env.example
 *.db
 *.db-journal
 *.pem
