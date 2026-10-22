@@ -4,8 +4,9 @@ A browser-based invoice tool for small businesses: create and edit invoices with
 
 All data in this project is fictional.
 
-> **Branch `Dc-Laravel`.** The app runs as one **Laravel 13 (PHP 8.3)** application with **SQLite**. Laravel provides the API and serves the **Next.js** frontend, built as static files, from `backend/public/app`, so everything runs on one domain.
-> `frontend/` and `backend/` are separate projects, each with its own dependencies, tests and README.
+> **Quick start:** see [Run on localhost](#run-on-localhost). Two terminals: `php artisan serve` in `backend/` and `npm run dev` in `frontend/`, then open <http://localhost:3000> and sign in with the prefilled demo account.
+>
+> The app is a **Laravel 13 (PHP 8.3)** API with **SQLite** and a **Next.js** frontend. `frontend/` and `backend/` are separate projects, each with its own dependencies, tests and README.
 
 ## Tech stack
 
@@ -20,6 +21,9 @@ All data in this project is fictional.
 
 ## Features
 
+- **Landing page and demo login:** a marketing page with Get started / Log in; the login form is prefilled with a demo member account.
+- **Settings:** company name, email, phone and address, a default invoice template, default tax rate and notes. New invoices are prefilled from these, and every value can still be edited per invoice.
+- **Three invoice templates:** Classic, Modern and Minimal, switchable on any invoice and remembered with it.
 - **Invoice editor:** business and customer details, invoice number, issue and due dates, and notes.
 - **Line items:** add, edit and remove lines with a description, quantity and unit price.
 - **Totals in USD:** subtotal, fixed discount, percentage tax and grand total, calculated in integer cents.
@@ -39,10 +43,11 @@ All data in this project is fictional.
 
 ```
 Browser ──► Laravel (backend/, one domain)
-              ├── /app/*   the frontend: static HTML, CSS and JS in public/app
-              ├── /api/*   JSON API (routes/api.php) ──► Eloquent ──► SQLite
-              │                                   └──► Laravel Mail ──► SMTP (Resend)
-              └── /        redirects to /app/invoices/
+              └── /api/*   JSON API (routes/api.php) ──► Eloquent ──► SQLite
+                                                  └──► Laravel Mail ──► SMTP (any provider)
+Browser ──► Next.js dev server (frontend/, http://localhost:3000)
+              ├── /, /login, /invoices/…, /invoices/settings/   pages
+              └── /api/*   forwarded to Laravel
 ```
 
 ```
@@ -69,68 +74,71 @@ invoice-generator/
 ### Requirements
 
 - **PHP 8.3 or later** with the `pdo_sqlite` extension, and **Composer**. Check with `php -v` and `composer -V`.
-- **Node.js 20.9 or later** and **npm**, to build the frontend. Check with `node -v`.
+- **Node.js 20.9 or later** and **npm**. Check with `node -v`.
 - **Git**, to clone the repository.
 - **SMTP login (optional):** only needed to send emails. Everything else works without it.
+
+Both `.env` files are committed with safe local defaults, so no copying or editing of config files is needed.
 
 ### 1. Get the code
 
 ```bash
-git clone https://github.com/Demo-general-projects/invoice-generator.git
-cd invoice-generator
-git checkout Dc-Laravel
+git clone https://github.com/Demo-general-projects/invoice-generator-portal.git
+cd invoice-generator-portal
 ```
 
-### 2. Set up the backend (once)
+### 2. Start the backend (API)
 
 ```bash
 cd backend
-composer install            # downloads Laravel's packages into backend/vendor
-composer setup              # creates .env, an app key, the SQLite database and a sample invoice (INV-0001)
+composer install            # downloads Laravel's packages (first time only)
+composer setup              # generates the app key, creates the SQLite database and a sample invoice (first time only)
+php artisan serve           # API on http://localhost:8000
 ```
 
-To send emails, add your SMTP details to `backend/.env` (see [Email setup](#email-setup)).
+Leave this terminal open. To check it, open <http://localhost:8000/api/health>, which returns `{"ok":true}`.
 
-### 3. Build the frontend into Laravel (once, and after frontend changes)
+### 3. Start the frontend (web app)
+
+In a second terminal:
 
 ```bash
-php artisan frontend:build  # runs npm ci and npm run build in ../frontend, then copies the result to public/app
+cd invoice-generator-portal/frontend
+npm install                 # first time only
+npm run dev                 # app on http://localhost:3000
 ```
 
-### 4. Start the app
+If port 3000 is busy, Next.js prints the port it picked instead (for example 3001). Use that one.
 
-```bash
-php artisan serve           # http://localhost:8000
-```
+### 4. Open the app
 
-Open <http://localhost:8000>. The invoices dashboard opens and shows the sample invoice INV-0001 ($99.00). Click **New invoice** to create one. To check the API alone, open <http://localhost:8000/api/health>, which returns `{"ok":true}`.
+1. Open <http://localhost:3000>. The landing page appears.
+2. Click **Get started** or **Log in**. The demo credentials are already filled in:
 
-Press `Ctrl + C` to stop. Invoices stay in `backend/database/database.sqlite` between runs. Next time, only step 4 is needed.
+   | Field | Value |
+   |---|---|
+   | Email | `member@ledgerline.app` |
+   | Password | `ledgerline2026` |
 
-### Working on the frontend (optional)
+3. Click **Sign in as member**. The invoices dashboard opens with the sample invoice INV-0001 ($99.00).
+4. Open **Settings** in the sidebar, enter your company name, email, phone and address, choose a default template (Classic, Modern or Minimal), optional default tax rate and notes, then **Save settings**.
+5. Click **New invoice**. The company details and template are prefilled from Settings; everything can still be changed on the invoice itself.
 
-To see frontend changes instantly instead of rebuilding, run the Next.js dev server next to Laravel:
+Press `Ctrl + C` in each terminal to stop. Invoices and settings stay in `backend/database/database.sqlite` between runs. Next time, only `php artisan serve` and `npm run dev` are needed.
 
-```bash
-# Terminal 1
-cd backend && php artisan serve          # API on http://localhost:8000
-
-# Terminal 2
-cd frontend
-cp .env.example .env                     # API_URL=http://localhost:8000
-npm install
-npm run dev                              # app on http://localhost:3000/app/
-```
-
-The dev server forwards `/api/*` to Laravel. When you're done, run `php artisan frontend:build` again so Laravel serves the latest version.
+> The login is a demo gate kept in the browser, not real authentication. Anyone with the URL can open the portal.
 
 ### Troubleshooting
 
-- **The page says "The frontend has not been built yet":** run `php artisan frontend:build` in `backend/`.
-- **The app says it can't reach the API:** the backend isn't running. Start it with `php artisan serve`, then reload the page.
-- **"Port already in use":** another process is using port 8000. Run `php artisan serve --port=8001` and set `APP_URL=http://localhost:8001` in `backend/.env`.
-- **Sending email returns "not configured":** set `MAIL_MAILER=smtp` and the other `MAIL_*` values in `backend/.env`, then restart `php artisan serve`.
+- **The app says it can't reach the API:** the backend isn't running. Start it with `php artisan serve` in `backend/`, then reload the page.
+- **"Port 8000 already in use":** run `php artisan serve --port=8001` and set `API_URL=http://localhost:8001` in `frontend/.env`, then restart `npm run dev`.
+- **Sending email returns "not configured":** set `MAIL_MAILER=smtp` and the other `MAIL_*` values in `backend/.env` (see [Email setup](#email-setup)), then restart `php artisan serve`. Never commit real SMTP credentials.
 - **Start again with an empty database:** run `php artisan migrate:fresh --seed` in `backend/`.
+- **`composer setup` modified `backend/.env`:** expected. It writes the generated `APP_KEY` into the committed file; you can ignore that change.
+
+### Single-server build (optional)
+
+`php artisan frontend:build` builds the frontend into `backend/public/app` for hosting everything from Laravel. The frontend is now served from the site root rather than `/app`, so this packaged mode needs the Laravel routes in `backend/routes/web.php` updated to match before it is used for deployment. For running locally, use the two terminals above.
 
 ## Tests and CI
 
