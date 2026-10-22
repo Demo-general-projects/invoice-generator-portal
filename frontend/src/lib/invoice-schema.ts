@@ -3,6 +3,7 @@
 // Requests/InvoiceRequest.php), which are the source of truth; keep them in sync.
 import { z } from "zod";
 import { centsToInput, formatDecimal, formatUSD, parseDecimal } from "./money";
+import { TEMPLATE_IDS } from "./templates";
 import { calculateTotals } from "./totals";
 
 // Upper bounds keep every intermediate product inside Number.MAX_SAFE_INTEGER.
@@ -27,6 +28,8 @@ const baseFields = {
   dueDate: z.string().regex(DATE, "Pick a due date"),
   businessName: z.string().trim().min(1, "Business name is required").max(120),
   businessEmail: optionalEmail,
+  businessPhone: z.string().trim().max(40),
+  template: z.enum(TEMPLATE_IDS),
   businessAddress: z.string().max(500),
   customerName: z.string().trim().min(1, "Customer name is required").max(120),
   customerEmail: optionalEmail,

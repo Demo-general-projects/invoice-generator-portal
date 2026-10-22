@@ -6,6 +6,7 @@ import { InvoiceNotFound, PageError, PageLoading } from "@/components/load-state
 import { useApiGet } from "@/lib/api-client";
 import type { InvoiceDefaults, InvoiceResponse } from "@/lib/api-types";
 import { inputToForm } from "@/lib/invoice-schema";
+import { formatDecimal } from "@/lib/money";
 import { InvoiceEditor, type EditorAction } from "./invoice-editor";
 
 const ACTIONS: EditorAction[] = ["print", "email"];
@@ -18,7 +19,7 @@ export function NewInvoice() {
     return <PageError message={result.status === "error" ? result.message : "The invoices API was not found."} onRetry={retry} />;
   }
 
-  const { number, issueDate, dueDate, business } = result.data;
+  const { number, issueDate, dueDate, business, template, taxRateBps, notes } = result.data;
   return (
     <InvoiceEditor
       initialValues={{
@@ -27,13 +28,15 @@ export function NewInvoice() {
         dueDate,
         businessName: business?.businessName ?? "",
         businessEmail: business?.businessEmail ?? "",
+        businessPhone: business?.businessPhone ?? "",
+        template: template ?? "classic",
         businessAddress: business?.businessAddress ?? "",
         customerName: "",
         customerEmail: "",
         customerAddress: "",
-        notes: "",
+        notes: notes ?? "",
         discount: "",
-        taxRate: "",
+        taxRate: taxRateBps ? formatDecimal(taxRateBps, 2) : "",
         lineItems: [{ description: "", quantity: "1", unitPrice: "" }],
         customFields: [],
       }}

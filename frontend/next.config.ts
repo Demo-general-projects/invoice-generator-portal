@@ -1,10 +1,9 @@
 import type { NextConfig } from "next";
 import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 
-// The app is served from /app: Laravel hosts the static build in backend/public/app
+// The app is served from the site root; Laravel hosts the static build in backend/public/app
 // and its API under /api on the same domain.
 const base: NextConfig = {
-  basePath: "/app",
   trailingSlash: true, // /app/invoices/ -> invoices/index.html, which any web server can serve
   turbopack: {
     rules: {

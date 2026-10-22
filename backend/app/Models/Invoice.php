@@ -19,6 +19,7 @@ class Invoice extends Model
         'due_date',
         'business_name',
         'business_email',
+        'business_phone',
         'business_address',
         'customer_name',
         'customer_email',
@@ -26,6 +27,7 @@ class Invoice extends Model
         'notes',
         'discount_cents',
         'tax_rate_bps',
+        'template',
     ];
 
     protected function casts(): array

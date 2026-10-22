@@ -4,7 +4,9 @@ namespace App\Http\Requests;
 
 use App\Domain\Money;
 use App\Domain\Totals;
+use App\Models\BusinessSettings;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 /**
@@ -31,6 +33,8 @@ class InvoiceRequest extends FormRequest
             'dueDate' => ['required', 'date_format:Y-m-d'],
             'businessName' => ['required', 'string', 'max:120'],
             'businessEmail' => [...$text(254), 'email'],
+            'businessPhone' => ['sometimes', 'string', 'max:40'],
+            'template' => ['sometimes', Rule::in(BusinessSettings::TEMPLATES)],
             'businessAddress' => $text(500),
             'customerName' => ['required', 'string', 'max:120'],
             'customerEmail' => [...$text(254), 'email'],
@@ -115,7 +119,9 @@ class InvoiceRequest extends FormRequest
                 'due_date' => $data['dueDate'],
                 'business_name' => $data['businessName'],
                 'business_email' => $data['businessEmail'],
+                'business_phone' => $data['businessPhone'] ?? '',
                 'business_address' => $data['businessAddress'],
+                'template' => $data['template'] ?? 'classic',
                 'customer_name' => $data['customerName'],
                 'customer_email' => $data['customerEmail'],
                 'customer_address' => $data['customerAddress'],

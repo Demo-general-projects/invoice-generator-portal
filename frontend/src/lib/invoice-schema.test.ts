@@ -8,6 +8,8 @@ const validForm: InvoiceFormValues = {
   dueDate: "2026-11-19",
   businessName: "Acme Studio",
   businessEmail: "hello@acme.test",
+  businessPhone: "",
+  template: "classic",
   businessAddress: "",
   customerName: "Bright Solutions",
   customerEmail: "",

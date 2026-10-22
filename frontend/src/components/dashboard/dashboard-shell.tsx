@@ -1,12 +1,23 @@
+"use client";
+
 import Link from "next/link";
-import { FileText, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FileText, LogOut, Plus, Settings } from "lucide-react";
+import { signOut } from "@/lib/auth";
 import type { ReactNode } from "react";
 
 /**
  * App frame for the invoices dashboard: a fixed sidebar on desktop and a
  * compact top bar on mobile. Only links to pages that exist.
  */
-export function DashboardShell({ invoiceCount, children }: { invoiceCount: number; children: ReactNode }) {
+type Page = "invoices" | "settings";
+
+const activeClass =
+  "flex h-11 items-center gap-3 rounded-xl bg-white px-3.5 text-[15px] font-medium text-primary shadow-[0_1px_2px_rgba(16,24,40,0.06),0_1px_3px_rgba(16,24,40,0.04)]";
+const idleClass =
+  "flex h-11 items-center gap-3 rounded-xl px-3.5 text-[15px] font-medium text-foreground/80 transition-colors hover:bg-white/70 hover:text-foreground";
+
+export function DashboardShell({ invoiceCount, current = "invoices", children }: { invoiceCount: number; current?: Page; children: ReactNode }) {
   return (
     <div className="min-h-dvh bg-white lg:pl-[17rem]">
       {/* Desktop sidebar */}
@@ -16,16 +27,14 @@ export function DashboardShell({ invoiceCount, children }: { invoiceCount: numbe
         <nav aria-label="Main" className="mt-6">
           <ul className="flex flex-col gap-2">
             <li>
-              <Link
-                href="/invoices"
-                aria-current="page"
-                className="flex h-11 items-center gap-3 rounded-xl bg-white px-3.5 text-[15px] font-medium text-primary shadow-[0_1px_2px_rgba(16,24,40,0.06),0_1px_3px_rgba(16,24,40,0.04)]"
-              >
+              <Link href="/invoices" aria-current={current === "invoices" ? "page" : undefined} className={current === "invoices" ? activeClass : idleClass}>
                 <FileText className="size-[18px]" aria-hidden />
                 Invoices
-                <span className="ml-auto min-w-7 rounded-md bg-primary px-1.5 py-0.5 text-center text-xs font-semibold text-white tabular-nums">
-                  {invoiceCount}
-                </span>
+                {current === "invoices" && (
+                  <span className="ml-auto min-w-7 rounded-md bg-primary px-1.5 py-0.5 text-center text-xs font-semibold text-white tabular-nums">
+                    {invoiceCount}
+                  </span>
+                )}
               </Link>
             </li>
             <li>
@@ -37,14 +46,26 @@ export function DashboardShell({ invoiceCount, children }: { invoiceCount: numbe
                 New invoice
               </Link>
             </li>
+            <li>
+              <Link href="/invoices/settings" aria-current={current === "settings" ? "page" : undefined} className={current === "settings" ? activeClass : idleClass}>
+                <Settings className="size-[18px]" aria-hidden />
+                Settings
+              </Link>
+            </li>
           </ul>
         </nav>
+        <div className="mt-auto">
+          <SignOutButton />
+        </div>
       </aside>
 
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-white/90 px-4 backdrop-blur lg:hidden">
         <Brand />
-        <nav aria-label="Main">
+        <nav aria-label="Main" className="flex items-center gap-2">
+          <Link href="/invoices/settings" aria-label="Settings" className="inline-flex size-10 items-center justify-center rounded-lg text-foreground/70 hover:bg-muted">
+            <Settings className="size-5" aria-hidden />
+          </Link>
           <Link
             href="/invoices/new"
             className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-medium text-white shadow-sm"
@@ -56,6 +77,23 @@ export function DashboardShell({ invoiceCount, children }: { invoiceCount: numbe
 
       {children}
     </div>
+  );
+}
+
+function SignOutButton() {
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        signOut();
+        router.replace("/login");
+      }}
+      className="flex h-11 w-full items-center gap-3 rounded-xl px-3.5 text-[15px] font-medium text-foreground/80 transition-colors hover:bg-white/70 hover:text-foreground"
+    >
+      <LogOut className="size-[18px]" aria-hidden />
+      Sign out
+    </button>
   );
 }
 

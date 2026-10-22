@@ -19,6 +19,7 @@ import { EmailDialog } from "./email-dialog";
 import { Section, TextAreaField, TextField } from "./form-controls";
 import { InvoiceDocument } from "./invoice-document";
 import { LineItemsEditor } from "./line-items-editor";
+import { TemplatePicker } from "./template-picker";
 
 export type EditorAction = "print" | "email";
 
@@ -30,6 +31,7 @@ type Props = {
 };
 
 const SECTIONS = [
+  { id: "template", label: "Template" },
   { id: "details", label: "Details" },
   { id: "items", label: "Items" },
   { id: "custom-fields", label: "Custom fields" },
@@ -215,10 +217,15 @@ export function InvoiceEditor({ invoiceId, initialValues, initialAction }: Props
               </nav>
 
               <div className="divide-y divide-border">
-                <Section id="details" title="Business information" description="Who the invoice is from.">
+                <Section id="template" title="Template" description="How the invoice looks. The default comes from Settings.">
+                  <TemplatePicker value={values.template} onChange={(id) => form.setValue("template", id, { shouldDirty: true })} />
+                </Section>
+
+                <Section id="details" title="Business information" description="Prefilled from Settings. Edit here to change it for this invoice only.">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <TextField label="Business name" autoComplete="organization" error={errors.businessName?.message} {...register("businessName")} />
                     <TextField label="Email" type="email" autoComplete="email" error={errors.businessEmail?.message} {...register("businessEmail")} />
+                    <TextField label="Phone" type="tel" autoComplete="tel" className="sm:col-span-2" error={errors.businessPhone?.message} {...register("businessPhone")} />
                     <TextAreaField label="Address" className="sm:col-span-2" rows={2} error={errors.businessAddress?.message} {...register("businessAddress")} />
                   </div>
                 </Section>

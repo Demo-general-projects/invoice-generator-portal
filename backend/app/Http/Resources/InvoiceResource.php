@@ -30,11 +30,13 @@ class InvoiceResource extends JsonResource
             'dueDate' => $this->due_date,
             'businessName' => $this->business_name,
             'businessEmail' => $this->business_email,
+            'businessPhone' => $this->business_phone ?? '',
             'businessAddress' => $this->business_address,
             'customerName' => $this->customer_name,
             'customerEmail' => $this->customer_email,
             'customerAddress' => $this->customer_address,
             'notes' => $this->notes,
+            'template' => $this->template ?? 'classic',
             'discountCents' => $this->discount_cents,
             'taxRateBps' => $this->tax_rate_bps,
             'lineItems' => $this->lineItems->map(fn (LineItem $line) => [

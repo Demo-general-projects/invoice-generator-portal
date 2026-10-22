@@ -9,6 +9,7 @@ use App\Http\Resources\InvoiceResource;
 use App\Http\Resources\InvoiceSummaryResource;
 use App\Mail\EmailNotConfigured;
 use App\Mail\InvoiceMail;
+use App\Models\BusinessSettings;
 use App\Models\Invoice;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -25,20 +26,39 @@ class InvoiceController extends Controller
         return response()->json(['invoices' => InvoiceSummaryResource::collection($invoices)]);
     }
 
-    /** Suggested number, dates and sender details for a new invoice. */
+    /**
+     * Suggested number, dates and sender details for a new invoice. The sender
+     * comes from the business settings when they are filled in, otherwise from
+     * the most recent invoice.
+     */
     public function defaults(): JsonResponse
     {
-        $latest = Invoice::latest()->latest('id')->first(['business_name', 'business_email', 'business_address']);
+        $settings = BusinessSettings::current();
+        $business = null;
+        if ($settings->exists && $settings->business_name !== '') {
+            $business = [
+                'businessName' => $settings->business_name,
+                'businessEmail' => $settings->business_email,
+                'businessPhone' => $settings->business_phone,
+                'businessAddress' => $settings->business_address,
+            ];
+        } elseif ($latest = Invoice::latest()->latest('id')->first(['business_name', 'business_email', 'business_phone', 'business_address'])) {
+            $business = [
+                'businessName' => $latest->business_name,
+                'businessEmail' => $latest->business_email,
+                'businessPhone' => $latest->business_phone ?? '',
+                'businessAddress' => $latest->business_address,
+            ];
+        }
 
         return response()->json([
             'number' => Invoice::suggestNumber(),
             'issueDate' => today()->toDateString(),
             'dueDate' => today()->addDays(30)->toDateString(),
-            'business' => $latest ? [
-                'businessName' => $latest->business_name,
-                'businessEmail' => $latest->business_email,
-                'businessAddress' => $latest->business_address,
-            ] : null,
+            'business' => $business,
+            'template' => $settings->default_template ?? 'classic',
+            'taxRateBps' => $settings->default_tax_rate_bps ?? 0,
+            'notes' => $settings->default_notes ?? '',
         ]);
     }
 

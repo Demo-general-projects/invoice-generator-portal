@@ -114,6 +114,36 @@ class InvoiceApiTest extends TestCase
     }
 
     #[Test]
+    public function it_saves_business_settings_and_uses_them_for_new_invoice_defaults(): void
+    {
+        $this->getJson('/api/settings')->assertOk()->assertJsonPath('settings.defaultTemplate', 'classic');
+
+        $settings = [
+            'businessName' => 'Ledger Co',
+            'businessEmail' => 'billing@ledger.test',
+            'businessPhone' => '+1 555 0100',
+            'businessAddress' => '1 Main St',
+            'defaultTemplate' => 'modern',
+            'defaultTaxRateBps' => 825,
+            'defaultNotes' => 'Net 30',
+        ];
+        $this->putJson('/api/settings', $settings)->assertOk()->assertJsonPath('settings', $settings);
+        $this->putJson('/api/settings', [...$settings, 'defaultTemplate' => 'bogus'])->assertStatus(400);
+
+        $this->getJson('/api/invoices/defaults')
+            ->assertOk()
+            ->assertJsonPath('business.businessName', 'Ledger Co')
+            ->assertJsonPath('business.businessPhone', '+1 555 0100')
+            ->assertJsonPath('template', 'modern')
+            ->assertJsonPath('taxRateBps', 825)
+            ->assertJsonPath('notes', 'Net 30');
+
+        $id = $this->createInvoice(['template' => 'minimal', 'businessPhone' => '+1 555 0100']);
+        $this->getJson("/api/invoices/{$id}")->assertOk()->assertJsonPath('invoice.template', 'minimal')->assertJsonPath('invoice.businessPhone', '+1 555 0100');
+        $this->postJson('/api/invoices', [...self::VALID, 'number' => 'INV-0009', 'template' => 'bogus'])->assertStatus(400);
+    }
+
+    #[Test]
     public function it_rejects_a_duplicate_invoice_number_with_409(): void
     {
         $this->createInvoice();
